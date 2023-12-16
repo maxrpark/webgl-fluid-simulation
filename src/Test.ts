@@ -1,4 +1,4 @@
-import PointerPrototype from "./PointerPrototype.js";
+import PointerPrototype from "./Pointer.js";
 import Material from "./shaders/Material.js";
 import Program from "./Program.js";
 import BaseVertexShader from "./shaders/vertex/baseVertexShader.js";

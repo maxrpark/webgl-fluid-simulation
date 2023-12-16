@@ -1,6 +1,7 @@
 import { hashCode } from "../utils/helperFunc.js";
-import FluidSimulation, { config } from "../FluidSimulation.js";
+import FluidSimulation from "../FluidSimulation.js";
 import ShaderCompiler from "./ShaderCompiler.js";
+import config from "../utils/config.js";
 
 const displayShaderSource = `
     precision highp float;
@@ -102,6 +103,8 @@ export default class Material {
       ditherScale: null,
       uSunrays: null,
     };
+
+    this.updateKeywords();
   }
 
   setKeywords(keywords: string[]) {
@@ -112,7 +115,7 @@ export default class Material {
 
     if (program == null) {
       let fragmentShader = new ShaderCompiler(
-        this.gl.FRAGMENT_SHADER,
+        this.gl.FRAGMENT_SHADER, // TODO
         this.fragmentShaderSource,
         keywords
       );
@@ -166,13 +169,13 @@ export default class Material {
 
     this.gl.uniform1i(
       this.uniforms.uTexture,
-      this.fluidSimulation.dye.read.attach(0)
+      this.fluidSimulation.webGLContext.dye.read.attach(0)
     );
 
     if (config.BLOOM) {
       this.gl.uniform1i(
         this.uniforms.uBloom,
-        this.fluidSimulation.bloom.attach(1)
+        this.fluidSimulation.webGLContext.bloom.attach(1)
       );
 
       this.gl.uniform1i(
@@ -185,10 +188,10 @@ export default class Material {
     if (config.SUNRAYS)
       this.gl.uniform1i(
         this.uniforms.uSunrays,
-        this.fluidSimulation.sunrays.attach(3)
+        this.fluidSimulation.webGLContext.sunrays.attach(3)
       );
 
-    this.fluidSimulation.blit(target);
+    this.fluidSimulation.webGLContext.blit(target); // TODO
   }
 
   getTextureScale(
@@ -272,5 +275,14 @@ export default class Material {
     image.src = url;
 
     return obj;
+  }
+
+  updateKeywords() {
+    let displayKeywords = [];
+    if (config.SHADING) displayKeywords.push("SHADING");
+    if (config.BLOOM) displayKeywords.push("BLOOM");
+    if (config.SUNRAYS) displayKeywords.push("SUNRAYS");
+
+    this.setKeywords(displayKeywords);
   }
 }

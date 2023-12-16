@@ -905,6 +905,7 @@ const blit = (() => {
     } else {
       gl.viewport(0, 0, target.width, target.height);
       gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
+      console.log(target.fbo);
     }
     if (clear) {
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -1462,6 +1463,7 @@ function drawDisplay(target) {
   if (config.SHADING)
     gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
   gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
+
   if (config.BLOOM) {
     gl.uniform1i(displayMaterial.uniforms.uBloom, bloom.attach(1));
     gl.uniform1i(

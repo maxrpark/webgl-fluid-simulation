@@ -1,3 +1,5 @@
+import config from "./utils/config.js";
+
 export default class Material {
   vertexShader: string;
   fragmentShaderSource: string;
@@ -26,7 +28,7 @@ export default class Material {
     };
   }
 
-  setKeywords(keywords: string) {
+  setKeywords(keywords: string[]) {
     let hash = 0;
     for (let i = 0; i < keywords.length; i++) hash += hashCode(keywords[i]);
 

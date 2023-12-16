@@ -14,30 +14,30 @@ export default class Canvas extends EventEmitter {
       this.trigger("mousemove", [e]);
     });
 
-    this.canvas.addEventListener("mouseup", () => {
-      this.trigger("mouseup");
+    this.canvas.addEventListener("mouseup", (e) => {
+      this.trigger("mouseup", [e]);
     });
 
     this.canvas.addEventListener("touchstart", (e) => {
       e.preventDefault();
-      this.trigger("touchstart");
+      this.trigger("touchstart", [e]);
     });
 
     this.canvas.addEventListener(
       "touchmove",
       (e) => {
         e.preventDefault();
-        this.trigger("touchmove");
+        this.trigger("touchmove", [e]);
       },
       false
     );
 
     this.canvas.addEventListener("touchend", (e) => {
-      this.trigger("touchend");
+      this.trigger("touchend", [e]);
     });
 
     this.canvas.addEventListener("keydown", (e) => {
-      this.trigger("keydown");
+      this.trigger("keydown", [e]);
     });
 
     window.addEventListener("resize", () => {
