@@ -7,6 +7,9 @@ export default class WebGLContext {
     halfFloatTexType: any;
     supportLinearFiltering: any;
   };
+
+  internalFormat: any;
+  format: any;
   constructor(canvas: HTMLCanvasElement) {
     this.getWebGLContext(canvas);
   }
@@ -54,43 +57,40 @@ export default class WebGLContext {
     const halfFloatTexType = isWebGL2
       ? this.gl.HALF_FLOAT
       : halfFloat.HALF_FLOAT_OES;
-    let formatRGBA;
-    let formatRG;
-    let formatR;
 
     if (isWebGL2) {
-      formatRGBA = getSupportedFormat(
+      this.ext.formatRGBA = getSupportedFormat(
         this.gl,
         this.gl.RGBA16F,
         this.gl.RGBA,
         halfFloatTexType
       );
-      formatRG = this.getSupportedFormat(
+      this.ext.formatRG = this.getSupportedFormat(
         this.gl,
         this.gl.RG16F,
         this.gl.RG,
         halfFloatTexType
       );
-      formatR = this.getSupportedFormat(
+      this.ext.formatR = this.getSupportedFormat(
         this.gl,
         this.gl.R16F,
         this.gl.RED,
         halfFloatTexType
       );
     } else {
-      formatRGBA = this.getSupportedFormat(
+      this.ext.formatRGBA = this.getSupportedFormat(
         this.gl,
         this.gl.RGBA,
         this.gl.RGBA,
         halfFloatTexType
       );
-      formatRG = this.getSupportedFormat(
+      this.ext.formatRG = this.getSupportedFormat(
         this.gl,
         this.gl.RGBA,
         this.gl.RGBA,
         halfFloatTexType
       );
-      formatR = this.getSupportedFormat(
+      this.ext.formatR = this.getSupportedFormat(
         this.gl,
         this.gl.RGBA,
         this.gl.RGBA,
@@ -124,5 +124,60 @@ export default class WebGLContext {
       internalFormat,
       format,
     };
+  }
+
+  supportRenderTextureFormat(
+    internalFormat: number,
+    format: number,
+    type: number
+  ) {
+    if (!this.gl) return;
+
+    let texture = this.gl.createTexture();
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MIN_FILTER,
+      this.gl.NEAREST
+    );
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MAG_FILTER,
+      this.gl.NEAREST
+    );
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_WRAP_S,
+      this.gl.CLAMP_TO_EDGE
+    );
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_WRAP_T,
+      this.gl.CLAMP_TO_EDGE
+    );
+    this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      internalFormat,
+      4,
+      4,
+      0,
+      format,
+      type,
+      null
+    );
+
+    let fbo = this.gl.createFramebuffer();
+    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, fbo);
+    this.gl.framebufferTexture2D(
+      this.gl.FRAMEBUFFER,
+      this.gl.COLOR_ATTACHMENT0,
+      this.gl.TEXTURE_2D,
+      texture,
+      0
+    );
+
+    let status = this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER);
+    return status == this.gl.FRAMEBUFFER_COMPLETE;
   }
 }

@@ -189,8 +189,6 @@ export default class FluidSimulation {
 
     this.pointers.push(new PointerPrototype());
 
-    // startGUI();
-
     const getWebGLContext = () => {
       const params = {
         alpha: true,
@@ -881,8 +879,6 @@ export default class FluidSimulation {
   }
 
   update() {
-    console.log("msx");
-
     if (this.resizeCanvas()) this.initFramebuffers();
     this.updateColors(this.time.delta);
     this.applyInputs();
