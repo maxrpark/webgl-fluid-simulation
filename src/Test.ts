@@ -23,14 +23,7 @@ import BloomPrefilterShader from "./shaders/fragment/BloomPrefilterShader.js";
 import CheckerboardShader from "./shaders/fragment/CheckerboardShader.js";
 import ColorShader from "./shaders/fragment/ColorShader.js";
 import ClearShader from "./shaders/fragment/ClearShader.js";
-import {
-  generateColor,
-  normalizeColor,
-  scaleByPixelRatio,
-  wrap,
-} from "./utils/helperFunc.js";
-import WebGLContext from "./WebGLContext.js";
-import Canvas from "./Canvas.js";
+import { generateColor, scaleByPixelRatio, wrap } from "./utils/helperFunc.js";
 
 interface Pointer {
   id: any;
@@ -42,12 +35,7 @@ interface Pointer {
   prevTexcoordY: any;
   deltaX: number;
   deltaY: number;
-  color: {
-    r: number;
-    g: number;
-    b: number;
-    //  a: number
-  };
+  color: { r: number; g: number; b: number; a: number };
 }
 
 interface Target {
@@ -106,22 +94,24 @@ export const config = {
   PAUSED: false,
   BACK_COLOR: { r: 0, g: 0, b: 0 },
   TRANSPARENT: false,
-  BLOOM: false,
+  BLOOM: true,
   BLOOM_ITERATIONS: 8,
   BLOOM_RESOLUTION: 256,
   BLOOM_INTENSITY: 0.8,
   BLOOM_THRESHOLD: 0.6,
   BLOOM_SOFT_KNEE: 0.7,
-  SUNRAYS: false,
+  SUNRAYS: true,
   SUNRAYS_RESOLUTION: 196,
   SUNRAYS_WEIGHT: 1.0,
   ONLY_HOVER: true,
 };
 
 export default class FluidSimulation {
-  canvas: Canvas;
+  canvas: HTMLCanvasElement;
   webGLContext: any;
   displayMaterial: Material;
+
+  //
 
   dye: any; // TODO
   velocity: any; // TODO;
@@ -180,16 +170,11 @@ export default class FluidSimulation {
 
   colorUpdateTimer: number;
 
-  constructor(canvas?: HTMLCanvasElement) {
-    // this.canvas = new Canvas(canvas!)!;
-    // this.canvas = canvas!;
-
+  constructor(canv?: HTMLCanvasElement) {
     if (instance) {
       return instance;
     }
-
-    this.canvas = new Canvas(canvas!)!;
-
+    this.canvas = canv!;
     this.colorUpdateTimer = 0;
 
     this.time = new Time();
@@ -197,18 +182,10 @@ export default class FluidSimulation {
     instance = this;
     this.time.on("tick", () => this.update());
 
-    // const canvas = canv;
-    // this.canvas.resizeCanvas();
+    const canvas = canv;
+    this.resizeCanvas();
 
     this.pointers.push(new PointerPrototype());
-
-    this.canvas.on("mousemove", (e: Event) => this.mouseMove(e));
-    this.canvas.on("mouseup", () => this.mouseUp());
-    this.canvas.on("touchstart", (e: Event) => this.touchStart(e));
-    this.canvas.on("touchmove", (e: Event) => this.touchMove(e));
-    this.canvas.on("touchend", (e: Event) => this.touchEnd(e));
-    this.canvas.on("keydown", (e: Event) => this.keyDown(e));
-    this.canvas.on("resize", (e: Event) => this.onResize());
 
     const getWebGLContext = () => {
       const params = {
@@ -218,24 +195,21 @@ export default class FluidSimulation {
         antialias: false,
         preserveDrawingBuffer: false,
       };
-      if (!(this.canvas.canvas instanceof HTMLCanvasElement)) {
+      if (!(this.canvas instanceof HTMLCanvasElement)) {
         throw new Error(
           `The element of id "TODO" is not a HTMLCanvasElement. Make sure a <canvas id="TODO""> element is present in the document.`
         ); // ERROR
       }
       let gl: WebGL2RenderingContext | null = <WebGL2RenderingContext>(
-        this.canvas.canvas.getContext("webgl2", params)!
+        this.canvas.getContext("webgl2", params)!
       );
 
       const isWebGL2 = !!gl; // TODO
 
       if (!gl)
         gl =
-          (this.canvas.canvas.getContext(
-            "webgl",
-            params
-          ) as WebGL2RenderingContext) ||
-          (this.canvas.canvas.getContext(
+          (this.canvas.getContext("webgl", params) as WebGL2RenderingContext) ||
+          (this.canvas.getContext(
             "experimental-webgl",
             params
           ) as WebGL2RenderingContext);
@@ -288,13 +262,11 @@ export default class FluidSimulation {
       };
     };
 
-    this.webGLContext = getWebGLContext();
-    // this.webGLContext = new WebGLContext(canvas!);
+    this.webGLContext = getWebGLContext(canvas!);
 
     if (isMobile()) {
       config.DYE_RESOLUTION = 512;
     }
-
     if (!this.webGLContext.ext.supportLinearFiltering) {
       config.DYE_RESOLUTION = 512;
       config.SHADING = false;
@@ -462,6 +434,12 @@ export default class FluidSimulation {
 
     this.initFramebuffers();
 
+    const correctRadius = (radius: number) => {
+      let aspectRatio = this.canvas.width / this.canvas.height;
+      if (aspectRatio > 1) radius *= aspectRatio;
+      return radius;
+    };
+
     const splat = (
       x: number,
       y: number,
@@ -527,6 +505,122 @@ export default class FluidSimulation {
     };
     multipleSplats(Math.random() * 20 + 5);
 
+    this.canvas.addEventListener("mousedown", (e) => {
+      let posX = scaleByPixelRatio(e.offsetX);
+      let posY = scaleByPixelRatio(e.offsetY);
+      let pointer = this.pointers.find((p) => p.id == -1);
+      if (pointer == null) pointer = new PointerPrototype();
+      updatePointerDownData(pointer, -1, posX, posY);
+    });
+
+    this.canvas.addEventListener("mousemove", (e) => {
+      let pointer = this.pointers[0];
+      if (!pointer.down && config.ONLY_HOVER == false) return;
+      let posX = scaleByPixelRatio(e.offsetX);
+      let posY = scaleByPixelRatio(e.offsetY);
+      updatePointerMoveData(pointer, posX, posY);
+    });
+
+    window.addEventListener("mouseup", () => {
+      updatePointerUpData(this.pointers[0]);
+    });
+
+    this.canvas.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      const touches = e.targetTouches;
+      while (touches.length >= pointers.length)
+        pointers.push(new PointerPrototype());
+      for (let i = 0; i < touches.length; i++) {
+        let posX = scaleByPixelRatio(touches[i].pageX);
+        let posY = scaleByPixelRatio(touches[i].pageY);
+        updatePointerDownData(
+          pointers[i + 1],
+          touches[i].identifier,
+          posX,
+          posY
+        );
+      }
+    });
+
+    this.canvas.addEventListener(
+      "touchmove",
+      (e) => {
+        e.preventDefault();
+        const touches = e.targetTouches;
+        for (let i = 0; i < touches.length; i++) {
+          let pointer = pointers[i + 1];
+          if (!pointer.down) continue;
+          let posX = scaleByPixelRatio(touches[i].pageX);
+          let posY = scaleByPixelRatio(touches[i].pageY);
+          updatePointerMoveData(pointer, posX, posY);
+        }
+      },
+      false
+    );
+
+    window.addEventListener("touchend", (e) => {
+      const touches = e.changedTouches;
+      for (let i = 0; i < touches.length; i++) {
+        let pointer = pointers.find((p) => p.id == touches[i].identifier);
+        if (pointer == null) continue;
+        updatePointerUpData(pointer);
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "KeyP") config.PAUSED = !config.PAUSED;
+      if (e.key === " ") this.splatStack.push(Math.random() * 20 + 5);
+    });
+
+    const updatePointerDownData = (
+      pointer: Pointer,
+      id: number,
+      posX: number,
+      posY: number
+    ) => {
+      pointer.id = id;
+      pointer.down = true;
+      pointer.moved = false;
+      pointer.texcoordX = posX / this.canvas.width;
+      pointer.texcoordY = 1.0 - posY / this.canvas.height;
+      pointer.prevTexcoordX = pointer.texcoordX;
+      pointer.prevTexcoordY = pointer.texcoordY;
+      pointer.deltaX = 0;
+      pointer.deltaY = 0;
+      pointer.color = generateColor();
+    };
+
+    const updatePointerMoveData = (
+      pointer: Pointer,
+      posX: number,
+      posY: number
+    ) => {
+      pointer.prevTexcoordX = pointer.texcoordX;
+      pointer.prevTexcoordY = pointer.texcoordY;
+      pointer.texcoordX = posX / this.canvas.width;
+      pointer.texcoordY = 1.0 - posY / this.canvas.height;
+      pointer.deltaX = correctDeltaX(pointer.texcoordX - pointer.prevTexcoordX);
+      pointer.deltaY = correctDeltaY(pointer.texcoordY - pointer.prevTexcoordY);
+      pointer.moved =
+        Math.abs(pointer.deltaX) > 0 || Math.abs(pointer.deltaY) > 0;
+    };
+
+    const updatePointerUpData = (pointer: Pointer) => {
+      pointer.down = false;
+    };
+
+    const correctDeltaX = (delta: number) => {
+      let aspectRatio = this.canvas.width / this.canvas.height;
+      if (aspectRatio < 1) delta *= aspectRatio;
+      return delta;
+    };
+
+    const correctDeltaY = (delta: number) => {
+      let aspectRatio = this.canvas.width / this.canvas.height;
+      if (aspectRatio > 1) delta /= aspectRatio;
+      return delta;
+    };
+
     this.updateKeywords();
     this.update();
   }
@@ -537,6 +631,17 @@ export default class FluidSimulation {
     if (config.BLOOM) displayKeywords.push("BLOOM");
     if (config.SUNRAYS) displayKeywords.push("SUNRAYS");
     this.displayMaterial.setKeywords(displayKeywords);
+  }
+
+  resizeCanvas() {
+    let width = scaleByPixelRatio(this.canvas.clientWidth);
+    let height = scaleByPixelRatio(this.canvas.clientHeight);
+    if (this.canvas.width != width || this.canvas.height != height) {
+      this.canvas.width = width;
+      this.canvas.height = height;
+      return true;
+    }
+    return false;
   }
 
   getResolution(resolution: number) {
@@ -620,6 +725,7 @@ export default class FluidSimulation {
 
   drawColor(target: any, color: any) {
     this.colorProgram.bind();
+
     this.webGLContext.gl.uniform4f(
       this.colorProgram.uniforms.color,
       color.r,
@@ -628,6 +734,16 @@ export default class FluidSimulation {
       1
     );
     this.blit(target);
+  }
+
+  // HELPER
+  normalizeColor(input: { r: number; g: number; b: number }) {
+    let output = {
+      r: input.r / 255,
+      g: input.g / 255,
+      b: input.b / 255,
+    };
+    return output;
   }
 
   render(target: any) {
@@ -658,7 +774,7 @@ export default class FluidSimulation {
     }
 
     if (!config.TRANSPARENT)
-      this.drawColor(target, normalizeColor(config.BACK_COLOR));
+      this.drawColor(target, this.normalizeColor(config.BACK_COLOR));
     if (target == null && config.TRANSPARENT) drawCheckerboard(target);
 
     this.displayMaterial.drawDisplay(target);
@@ -760,6 +876,14 @@ export default class FluidSimulation {
     this.initSunraysFramebuffers();
   }
 
+  update() {
+    if (this.resizeCanvas()) this.initFramebuffers();
+    this.updateColors(this.time.delta);
+    this.applyInputs();
+    if (!config.PAUSED) this.step(this.time.delta);
+    this.render(null);
+  }
+
   applyInputs() {
     if (this.splatStack.length > 0) multipleSplats(this.splatStack.pop());
 
@@ -817,9 +941,9 @@ export default class FluidSimulation {
     param: number
   ) {
     let newFBO = this.createFBO(w, h, internalFormat, format, type, param);
-    this.copyProgram.bind();
+    copyProgram.bind();
     this.webGLContext.gl.uniform1i(
-      this.copyProgram.uniforms.uTexture,
+      copyProgram.uniforms.uTexture,
       target.attach(0)
     );
     this.blit(newFBO);
@@ -992,6 +1116,154 @@ export default class FluidSimulation {
       texType,
       filtering
     );
+  }
+
+  step(dt: number) {
+    this.webGLContext.gl.disable(this.webGLContext.gl.BLEND);
+
+    this.curlProgram.bind();
+    this.webGLContext.gl.uniform2f(
+      this.curlProgram.uniforms.texelSize,
+      this.velocity.texelSizeX,
+      this.velocity.texelSizeY
+    );
+    this.webGLContext.gl.uniform1i(
+      this.curlProgram.uniforms.uVelocity,
+      this.velocity.read.attach(0)
+    );
+    this.blit(this.curl);
+
+    this.vorticityProgram.bind();
+    this.webGLContext.gl.uniform2f(
+      this.vorticityProgram.uniforms.texelSize,
+      this.velocity.texelSizeX,
+      this.velocity.texelSizeY
+    );
+    this.webGLContext.gl.uniform1i(
+      this.vorticityProgram.uniforms.uVelocity,
+      this.velocity.read.attach(0)
+    );
+    this.webGLContext.gl.uniform1i(
+      this.vorticityProgram.uniforms.uCurl,
+      this.curl.attach(1)
+    );
+    this.webGLContext.gl.uniform1f(
+      this.vorticityProgram.uniforms.curl,
+      config.CURL
+    );
+    this.webGLContext.gl.uniform1f(this.vorticityProgram.uniforms.dt, dt);
+    this.blit(this.velocity.write);
+    this.velocity.swap();
+
+    this.divergenceProgram.bind();
+    this.webGLContext.gl.uniform2f(
+      this.divergenceProgram.uniforms.texelSize,
+      this.velocity.texelSizeX,
+      this.velocity.texelSizeY
+    );
+    this.webGLContext.gl.uniform1i(
+      this.divergenceProgram.uniforms.uVelocity,
+      this.velocity.read.attach(0)
+    );
+    this.blit(this.divergence);
+
+    this.clearProgram.bind();
+    this.webGLContext.gl.uniform1i(
+      this.clearProgram.uniforms.uTexture,
+      this.pressure.read.attach(0)
+    );
+    this.webGLContext.gl.uniform1f(
+      this.clearProgram.uniforms.value,
+      config.PRESSURE
+    );
+    this.blit(this.pressure.write);
+    this.pressure.swap();
+
+    this.pressureProgram.bind();
+    this.webGLContext.gl.uniform2f(
+      this.pressureProgram.uniforms.texelSize,
+      this.velocity.texelSizeX,
+      this.velocity.texelSizeY
+    );
+    this.webGLContext.gl.uniform1i(
+      this.pressureProgram.uniforms.uDivergence,
+      this.divergence.attach(0)
+    );
+    for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
+      this.webGLContext.gl.uniform1i(
+        this.pressureProgram.uniforms.uPressure,
+        this.pressure.read.attach(1)
+      );
+      this.blit(this.pressure.write);
+      this.pressure.swap();
+    }
+
+    this.gradienSubtractProgram.bind();
+    this.webGLContext.gl.uniform2f(
+      this.gradienSubtractProgram.uniforms.texelSize,
+      this.velocity.texelSizeX,
+      this.velocity.texelSizeY
+    );
+    this.webGLContext.gl.uniform1i(
+      this.gradienSubtractProgram.uniforms.uPressure,
+      this.pressure.read.attach(0)
+    );
+    this.webGLContext.gl.uniform1i(
+      this.gradienSubtractProgram.uniforms.uVelocity,
+      this.velocity.read.attach(1)
+    );
+    this.blit(this.velocity.write);
+    this.velocity.swap();
+
+    this.advectionProgram.bind();
+    this.webGLContext.gl.uniform2f(
+      this.advectionProgram.uniforms.texelSize,
+      this.velocity.texelSizeX,
+      this.velocity.texelSizeY
+    );
+    if (!this.webGLContext.ext.supportLinearFiltering)
+      this.webGLContext.gl.uniform2f(
+        this.advectionProgram.uniforms.dyeTexelSize,
+        this.velocity.texelSizeX,
+        this.velocity.texelSizeY
+      );
+    let velocityId = this.velocity.read.attach(0);
+    this.webGLContext.gl.uniform1i(
+      this.advectionProgram.uniforms.uVelocity,
+      velocityId
+    );
+    this.webGLContext.gl.uniform1i(
+      this.advectionProgram.uniforms.uSource,
+      velocityId
+    );
+    this.webGLContext.gl.uniform1f(this.advectionProgram.uniforms.dt, dt);
+    this.webGLContext.gl.uniform1f(
+      this.advectionProgram.uniforms.dissipation,
+      config.VELOCITY_DISSIPATION
+    );
+    this.blit(this.velocity.write);
+    this.velocity.swap();
+
+    if (!this.webGLContext.ext.supportLinearFiltering)
+      this.webGLContext.gl.uniform2f(
+        this.advectionProgram.uniforms.dyeTexelSize,
+        this.dye.texelSizeX,
+        this.dye.texelSizeY
+      );
+    this.webGLContext.gl.uniform1i(
+      this.advectionProgram.uniforms.uVelocity,
+      this.velocity.read.attach(0)
+    );
+    this.webGLContext.gl.uniform1i(
+      this.advectionProgram.uniforms.uSource,
+      this.dye.read.attach(1)
+    );
+    this.webGLContext.gl.uniform1f(
+      this.advectionProgram.uniforms.dissipation,
+      config.DENSITY_DISSIPATION
+    );
+    this.blit(this.dye.write);
+    this.dye.swap();
   }
 
   splatPointer(pointer: Pointer) {
@@ -1189,276 +1461,5 @@ export default class FluidSimulation {
       );
       this.blit(target);
     }
-  }
-
-  step(dt: number) {
-    this.webGLContext.gl.disable(this.webGLContext.gl.BLEND);
-
-    this.curlProgram.bind();
-    this.webGLContext.gl.uniform2f(
-      this.curlProgram.uniforms.texelSize,
-      this.velocity.texelSizeX,
-      this.velocity.texelSizeY
-    );
-    this.webGLContext.gl.uniform1i(
-      this.curlProgram.uniforms.uVelocity,
-      this.velocity.read.attach(0)
-    );
-    this.blit(this.curl);
-
-    this.vorticityProgram.bind();
-    this.webGLContext.gl.uniform2f(
-      this.vorticityProgram.uniforms.texelSize,
-      this.velocity.texelSizeX,
-      this.velocity.texelSizeY
-    );
-    this.webGLContext.gl.uniform1i(
-      this.vorticityProgram.uniforms.uVelocity,
-      this.velocity.read.attach(0)
-    );
-    this.webGLContext.gl.uniform1i(
-      this.vorticityProgram.uniforms.uCurl,
-      this.curl.attach(1)
-    );
-    this.webGLContext.gl.uniform1f(
-      this.vorticityProgram.uniforms.curl,
-      config.CURL
-    );
-    this.webGLContext.gl.uniform1f(this.vorticityProgram.uniforms.dt, dt);
-    this.blit(this.velocity.write);
-    this.velocity.swap();
-
-    this.divergenceProgram.bind();
-    this.webGLContext.gl.uniform2f(
-      this.divergenceProgram.uniforms.texelSize,
-      this.velocity.texelSizeX,
-      this.velocity.texelSizeY
-    );
-    this.webGLContext.gl.uniform1i(
-      this.divergenceProgram.uniforms.uVelocity,
-      this.velocity.read.attach(0)
-    );
-    this.blit(this.divergence);
-
-    this.clearProgram.bind();
-    this.webGLContext.gl.uniform1i(
-      this.clearProgram.uniforms.uTexture,
-      this.pressure.read.attach(0)
-    );
-    this.webGLContext.gl.uniform1f(
-      this.clearProgram.uniforms.value,
-      config.PRESSURE
-    );
-    this.blit(this.pressure.write);
-    this.pressure.swap();
-
-    this.pressureProgram.bind();
-    this.webGLContext.gl.uniform2f(
-      this.pressureProgram.uniforms.texelSize,
-      this.velocity.texelSizeX,
-      this.velocity.texelSizeY
-    );
-    this.webGLContext.gl.uniform1i(
-      this.pressureProgram.uniforms.uDivergence,
-      this.divergence.attach(0)
-    );
-    for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
-      this.webGLContext.gl.uniform1i(
-        this.pressureProgram.uniforms.uPressure,
-        this.pressure.read.attach(1)
-      );
-      this.blit(this.pressure.write);
-      this.pressure.swap();
-    }
-
-    this.gradienSubtractProgram.bind();
-    this.webGLContext.gl.uniform2f(
-      this.gradienSubtractProgram.uniforms.texelSize,
-      this.velocity.texelSizeX,
-      this.velocity.texelSizeY
-    );
-    this.webGLContext.gl.uniform1i(
-      this.gradienSubtractProgram.uniforms.uPressure,
-      this.pressure.read.attach(0)
-    );
-    this.webGLContext.gl.uniform1i(
-      this.gradienSubtractProgram.uniforms.uVelocity,
-      this.velocity.read.attach(1)
-    );
-    this.blit(this.velocity.write);
-    this.velocity.swap();
-
-    this.advectionProgram.bind();
-    this.webGLContext.gl.uniform2f(
-      this.advectionProgram.uniforms.texelSize,
-      this.velocity.texelSizeX,
-      this.velocity.texelSizeY
-    );
-    if (!this.webGLContext.ext.supportLinearFiltering)
-      this.webGLContext.gl.uniform2f(
-        this.advectionProgram.uniforms.dyeTexelSize,
-        this.velocity.texelSizeX,
-        this.velocity.texelSizeY
-      );
-    let velocityId = this.velocity.read.attach(0);
-    this.webGLContext.gl.uniform1i(
-      this.advectionProgram.uniforms.uVelocity,
-      velocityId
-    );
-    this.webGLContext.gl.uniform1i(
-      this.advectionProgram.uniforms.uSource,
-      velocityId
-    );
-    this.webGLContext.gl.uniform1f(this.advectionProgram.uniforms.dt, dt);
-    this.webGLContext.gl.uniform1f(
-      this.advectionProgram.uniforms.dissipation,
-      config.VELOCITY_DISSIPATION
-    );
-    this.blit(this.velocity.write);
-    this.velocity.swap();
-
-    if (!this.webGLContext.ext.supportLinearFiltering)
-      this.webGLContext.gl.uniform2f(
-        this.advectionProgram.uniforms.dyeTexelSize,
-        this.dye.texelSizeX,
-        this.dye.texelSizeY
-      );
-    this.webGLContext.gl.uniform1i(
-      this.advectionProgram.uniforms.uVelocity,
-      this.velocity.read.attach(0)
-    );
-    this.webGLContext.gl.uniform1i(
-      this.advectionProgram.uniforms.uSource,
-      this.dye.read.attach(1)
-    );
-    this.webGLContext.gl.uniform1f(
-      this.advectionProgram.uniforms.dissipation,
-      config.DENSITY_DISSIPATION
-    );
-    this.blit(this.dye.write);
-    this.dye.swap();
-  }
-
-  update() {
-    // console.log(this.canvas.resizeCanvas());
-
-    // if (this.canvas.resizeCanvas()) this.initFramebuffers();
-
-    this.updateColors(this.time.delta);
-    this.applyInputs();
-    if (!config.PAUSED) this.step(this.time.delta);
-    this.render(null);
-  }
-
-  onResize() {
-    console.log("REsize");
-
-    this.initFramebuffers();
-  }
-
-  //EVENTS
-
-  updatePointerDownData(
-    pointer: Pointer,
-    id: number,
-    posX: number,
-    posY: number
-  ) {
-    pointer.id = id;
-    pointer.down = true;
-    pointer.moved = false;
-    pointer.texcoordX = posX / this.canvas.width;
-    pointer.texcoordY = 1.0 - posY / this.canvas.height;
-    pointer.prevTexcoordX = pointer.texcoordX;
-    pointer.prevTexcoordY = pointer.texcoordY;
-    pointer.deltaX = 0;
-    pointer.deltaY = 0;
-    pointer.color = generateColor();
-  }
-
-  updatePointerMoveData(pointer: Pointer, posX: number, posY: number) {
-    pointer.prevTexcoordX = pointer.texcoordX;
-    pointer.prevTexcoordY = pointer.texcoordY;
-    pointer.texcoordX = posX / this.canvas.width;
-    pointer.texcoordY = 1.0 - posY / this.canvas.height;
-    pointer.deltaX = this.correctDeltaX(
-      pointer.texcoordX - pointer.prevTexcoordX
-    );
-    pointer.deltaY = this.correctDeltaY(
-      pointer.texcoordY - pointer.prevTexcoordY
-    );
-    pointer.moved =
-      Math.abs(pointer.deltaX) > 0 || Math.abs(pointer.deltaY) > 0;
-  }
-
-  updatePointerUpData(pointer: Pointer) {
-    pointer.down = false;
-  }
-
-  mouseMove(e: any) {
-    let pointer = this.pointers[0];
-    if (!pointer.down && config.ONLY_HOVER == false) return;
-    let posX = scaleByPixelRatio(e.offsetX);
-    let posY = scaleByPixelRatio(e.offsetY);
-    this.updatePointerMoveData(pointer, posX, posY);
-  }
-
-  mouseUp() {
-    this.updatePointerUpData(this.pointers[0]);
-  }
-
-  touchStart(e: any) {
-    e.preventDefault();
-    const touches = e.targetTouches;
-    while (touches.length >= pointers.length)
-      pointers.push(new PointerPrototype());
-    for (let i = 0; i < touches.length; i++) {
-      let posX = scaleByPixelRatio(touches[i].pageX);
-      let posY = scaleByPixelRatio(touches[i].pageY);
-      this.updatePointerDownData(
-        this.pointers[i + 1],
-        touches[i].identifier,
-        posX,
-        posY
-      );
-    }
-  }
-
-  touchMove(e: any) {
-    e.preventDefault();
-    const touches = e.targetTouches;
-    for (let i = 0; i < touches.length; i++) {
-      let pointer = this.pointers[i + 1];
-      if (!pointer.down) continue;
-      let posX = scaleByPixelRatio(touches[i].pageX);
-      let posY = scaleByPixelRatio(touches[i].pageY);
-      updatePointerMoveData(pointer, posX, posY);
-    }
-  }
-
-  touchEnd(e: any) {
-    const touches = e.changedTouches;
-    for (let i = 0; i < touches.length; i++) {
-      let pointer = this.pointers.find((p) => p.id == touches[i].identifier);
-      if (pointer == null) continue;
-      updatePointerUpData(pointer);
-    }
-  }
-
-  keyDown(e: any) {
-    if (e.code === "KeyP") config.PAUSED = !config.PAUSED;
-    if (e.key === " ") this.splatStack.push(Math.random() * 20 + 5);
-  }
-
-  correctDeltaX(delta: number) {
-    let aspectRatio = this.canvas.width / this.canvas.height;
-    if (aspectRatio < 1) delta *= aspectRatio;
-    return delta;
-  }
-
-  correctDeltaY(delta: number) {
-    let aspectRatio = this.canvas.width / this.canvas.height;
-    if (aspectRatio > 1) delta /= aspectRatio;
-    return delta;
   }
 }

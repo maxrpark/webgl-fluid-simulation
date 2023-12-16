@@ -8,7 +8,7 @@ export const hashCode = (s: string) => {
   return hash;
 };
 
-export const generateColor = () => {
+export const generateColor = (): { r: number; g: number; b: number } => {
   let c = HSVtoRGB(Math.random(), 1.0, 1.0);
   c.r! *= 0.15;
   c.g! *= 0.15;
@@ -18,8 +18,12 @@ export const generateColor = () => {
   // return { r: 1, g: 1, b: 1, a: 1 };
 };
 
-export const HSVtoRGB = (h: number, s: number, v: number) => {
-  let r, g, b, i, f, p, q, t;
+export const HSVtoRGB = (
+  h: number,
+  s: number,
+  v: number
+): { r: number; g: number; b: number } => {
+  let r, g, b, i, f, p, q, t: number;
   i = Math.floor(h * 6);
   f = h * 6 - i;
   p = v * (1 - s);
@@ -48,9 +52,9 @@ export const HSVtoRGB = (h: number, s: number, v: number) => {
   }
 
   return {
-    r,
-    g,
-    b,
+    r: r!,
+    g: g!,
+    b: b!,
   };
 };
 
@@ -63,4 +67,13 @@ export const wrap = (value: number, min: number, max: number) => {
 export const scaleByPixelRatio = (input: number) => {
   let pixelRatio = window.devicePixelRatio || 1;
   return Math.floor(input * pixelRatio);
+};
+
+export const normalizeColor = (input: { r: number; g: number; b: number }) => {
+  let output = {
+    r: input.r / 255,
+    g: input.g / 255,
+    b: input.b / 255,
+  };
+  return output;
 };

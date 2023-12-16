@@ -81,6 +81,7 @@ const { gl, ext } = getWebGLContext(canvas);
 if (isMobile()) {
   config.DYE_RESOLUTION = 512;
 }
+
 if (!ext.supportLinearFiltering) {
   config.DYE_RESOLUTION = 512;
   config.SHADING = false;
@@ -909,6 +910,7 @@ const blit = (() => {
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
     }
+
     // CHECK_FRAMEBUFFER_STATUS();
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
   };
@@ -1255,6 +1257,7 @@ update();
 
 function update() {
   const dt = calcDeltaTime();
+
   if (resizeCanvas()) initFramebuffers();
   updateColors(dt);
   applyInputs();
@@ -1268,15 +1271,18 @@ function calcDeltaTime() {
   let dt = (now - lastUpdateTime) / 1000;
   dt = Math.min(dt, 0.016666);
   lastUpdateTime = now;
+
   return dt;
 }
 
 function resizeCanvas() {
   let width = scaleByPixelRatio(canvas.clientWidth);
   let height = scaleByPixelRatio(canvas.clientHeight);
+
   if (canvas.width != width || canvas.height != height) {
     canvas.width = width;
     canvas.height = height;
+
     return true;
   }
   return false;
