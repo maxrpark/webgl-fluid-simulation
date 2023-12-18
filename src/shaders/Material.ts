@@ -2,8 +2,8 @@ import { hashCode } from "../utils/helperFunc.js";
 import FluidSimulation from "../FluidSimulation.js";
 import ShaderCompiler from "./ShaderCompiler.js";
 import config from "../utils/config.js";
-// import imgTexture from "../assets/LDR_LLL1_0.png";
-const displayShaderSource = `
+import CreateProgram from "./CreateProgram.js";
+const fragmentShader = `
     precision highp float;
     precision highp sampler2D;
 
@@ -71,7 +71,7 @@ const displayShaderSource = `
 export default class Material {
   fluidSimulation: FluidSimulation;
   gl: WebGL2RenderingContext;
-
+  program: any;
   vertexShader: string;
   fragmentShaderSource: string;
   programs: WebGLShader[];
@@ -91,10 +91,10 @@ export default class Material {
     this.gl = this.fluidSimulation.webGLContext.gl;
     this.ditheringTexture = this.createTextureAsync(
       "package/assets/LDR_LLL1_0.png"
-    ); // TODO
+    );
 
     this.vertexShader = vertexShader;
-    this.fragmentShaderSource = displayShaderSource;
+    this.fragmentShaderSource = fragmentShader;
     this.programs = [];
     this.activeProgram = null;
     this.uniforms = {
@@ -109,56 +109,36 @@ export default class Material {
     this.updateKeywords();
   }
 
-  setKeywords(keywords: string[]) {
+  createFragmentShader(keywords: string[]) {
     let hash = 0;
     for (let i = 0; i < keywords.length; i++) hash += hashCode(keywords[i]);
 
-    let program: WebGLShader = this.programs[hash];
+    this.program = this.programs[hash];
 
-    if (program == null) {
+    if (this.program == null) {
       let fragmentShader = new ShaderCompiler(
         this.gl.FRAGMENT_SHADER, // TODO
         this.fragmentShaderSource,
         keywords
       );
 
-      program = this.createProgram(this.vertexShader, fragmentShader.shader);
-      this.programs[hash] = program;
+      this.program = new CreateProgram({
+        gl: this.gl,
+        vertexShader: this.vertexShader,
+        fragmentShader: fragmentShader.shader,
+      });
+
+      this.programs[hash] = this.program.instance;
     }
 
-    if (program == this.activeProgram) return;
+    if (this.program == this.activeProgram) return;
 
-    this.uniforms = this.getUniforms(program);
-    this.activeProgram = program;
+    this.uniforms = this.program.uniforms;
+    this.activeProgram = this.program.instance;
   }
 
   bind() {
     this.gl.useProgram(this.activeProgram);
-  }
-
-  createProgram(vertexShader: string, fragmentShader: string): WebGLShader {
-    let program: WebGLProgram = this.gl.createProgram()!; // TODO
-    this.gl.attachShader(program, vertexShader);
-    this.gl.attachShader(program, fragmentShader);
-    this.gl.linkProgram(program);
-
-    if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS))
-      console.trace(this.gl.getProgramInfoLog(program));
-
-    return program;
-  }
-
-  getUniforms(program: WebGLProgram) {
-    let uniforms: any = []; // TODO
-    let uniformCount = this.gl.getProgramParameter(
-      program,
-      this.gl.ACTIVE_UNIFORMS
-    );
-    for (let i = 0; i < uniformCount; i++) {
-      let uniformName = this.gl.getActiveUniform(program, i)!.name;
-      uniforms[uniformName] = this.gl.getUniformLocation(program, uniformName);
-    }
-    return uniforms;
   }
 
   drawDisplay(target: any) {
@@ -285,6 +265,6 @@ export default class Material {
     if (config.BLOOM) displayKeywords.push("BLOOM");
     if (config.SUNRAYS) displayKeywords.push("SUNRAYS");
 
-    this.setKeywords(displayKeywords);
+    this.createFragmentShader(displayKeywords);
   }
 }
