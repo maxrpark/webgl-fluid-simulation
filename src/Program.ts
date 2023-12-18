@@ -2,7 +2,7 @@ import FluidSimulation from "./FluidSimulation.js";
 import BaseVertexShader from "./shaders/vertex/baseVertexShader.js";
 
 interface Props {
-  vertexShader: string | null;
+  vertexShader?: string;
   fragmentShader: string;
 }
 export default class Program {
