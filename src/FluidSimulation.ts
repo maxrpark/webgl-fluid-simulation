@@ -48,7 +48,8 @@ let instance: FluidSimulation | null = null;
 
 export default class FluidSimulation {
   canvas: Canvas;
-  webGLContext: any;
+  webGLContext: WebGLContext;
+  gl: WebGL2RenderingContext;
   displayMaterial: Material;
   time: Time;
 
@@ -82,13 +83,6 @@ export default class FluidSimulation {
 
     instance = this;
     this.canvas = new Canvas(canvas!)!;
-    this.colorUpdateTimer = 0;
-
-    this.time = new Time();
-    this.time.on("tick", () => this.update());
-
-    this.pointers.push(new Pointer());
-
     this.canvas.on("mousemove", (e: Event) => this.mouseMove(e));
     this.canvas.on("mouseup", () => this.mouseUp());
     this.canvas.on("touchstart", (e: Event) => this.touchStart(e));
@@ -97,7 +91,14 @@ export default class FluidSimulation {
     this.canvas.on("keydown", (e: Event) => this.keyDown(e));
     this.canvas.on("resize", (e: Event) => this.onResize());
 
+    this.colorUpdateTimer = 0;
+
+    this.time = new Time();
+    this.time.on("tick", () => this.update());
+
+    this.pointers.push(new Pointer());
     this.webGLContext = new WebGLContext();
+    this.gl = this.webGLContext.gl;
 
     if (isMobile()) {
       config.DYE_RESOLUTION = 512;
@@ -170,8 +171,8 @@ export default class FluidSimulation {
 
     this.webGLContext.initFramebuffers();
 
-    const error = this.webGLContext.gl.getError();
-    if (error !== this.webGLContext.gl.NO_ERROR) {
+    const error = this.gl.getError();
+    if (error !== this.gl.NO_ERROR) {
       console.error("WebGL error:", error);
     }
 
@@ -190,13 +191,12 @@ export default class FluidSimulation {
     };
     multipleSplats(Math.random() * 20 + 5);
 
-    // this.updateKeywords();
     this.update();
   }
 
   drawColor(target: any, color: any) {
     this.colorProgram.bind();
-    this.webGLContext.gl.uniform4f(
+    this.gl.uniform4f(
       this.colorProgram.uniforms.color,
       color.r,
       color.g,
@@ -219,23 +219,17 @@ export default class FluidSimulation {
     }
 
     if (target == null || !config.TRANSPARENT) {
-      this.webGLContext.gl.blendFunc(
-        this.webGLContext.gl.ONE,
-        this.webGLContext.gl.ONE_MINUS_SRC_ALPHA
-      );
-      this.webGLContext.gl.enable(this.webGLContext.gl.BLEND);
+      this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
+      this.gl.enable(this.gl.BLEND);
     } else {
-      this.webGLContext.gl.disable(this.webGLContext.gl.BLEND);
+      this.gl.disable(this.gl.BLEND);
     }
 
     if (target == null || !config.TRANSPARENT) {
-      this.webGLContext.gl.blendFunc(
-        this.webGLContext.gl.ONE,
-        this.webGLContext.gl.ONE_MINUS_SRC_ALPHA
-      );
-      this.webGLContext.gl.enable(this.webGLContext.gl.BLEND);
+      this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
+      this.gl.enable(this.gl.BLEND);
     } else {
-      this.webGLContext.gl.disable(this.webGLContext.gl.BLEND);
+      this.gl.disable(this.gl.BLEND);
     }
 
     if (!config.TRANSPARENT)
@@ -283,33 +277,28 @@ export default class FluidSimulation {
   ) {
     this.splatProgram.bind();
 
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.splatProgram.uniforms.uTarget,
       this.webGLContext.velocity.read.attach(0)
     );
-    this.webGLContext.gl.uniform1f(
+    this.gl.uniform1f(
       this.splatProgram.uniforms.aspectRatio,
       this.canvas.width / this.canvas.height
     );
-    this.webGLContext.gl.uniform2f(this.splatProgram.uniforms.point, x, y);
-    this.webGLContext.gl.uniform3f(
-      this.splatProgram.uniforms.color,
-      dx,
-      dy,
-      0.0
-    );
-    this.webGLContext.gl.uniform1f(
+    this.gl.uniform2f(this.splatProgram.uniforms.point, x, y);
+    this.gl.uniform3f(this.splatProgram.uniforms.color, dx, dy, 0.0);
+    this.gl.uniform1f(
       this.splatProgram.uniforms.radius,
       this.correctRadius(config.SPLAT_RADIUS / 100.0)
     );
     this.webGLContext.blit(this.webGLContext.velocity.write);
     this.webGLContext.velocity.swap();
 
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.splatProgram.uniforms.uTarget,
       this.webGLContext.dye.read.attach(0)
     );
-    this.webGLContext.gl.uniform3f(
+    this.gl.uniform3f(
       this.splatProgram.uniforms.color,
       color.r,
       color.g,
@@ -330,23 +319,23 @@ export default class FluidSimulation {
 
     let last = destination;
 
-    this.webGLContext.gl.disable(this.webGLContext.gl.BLEND);
+    this.gl.disable(this.gl.BLEND);
     this.bloomPrefilterProgram.bind();
     let knee = config.BLOOM_THRESHOLD * config.BLOOM_SOFT_KNEE + 0.0001;
     let curve0 = config.BLOOM_THRESHOLD - knee;
     let curve1 = knee * 2;
     let curve2 = 0.25 / knee;
-    this.webGLContext.gl.uniform3f(
+    this.gl.uniform3f(
       this.bloomPrefilterProgram.uniforms.curve,
       curve0,
       curve1,
       curve2
     );
-    this.webGLContext.gl.uniform1f(
+    this.gl.uniform1f(
       this.bloomPrefilterProgram.uniforms.threshold,
       config.BLOOM_THRESHOLD
     );
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.bloomPrefilterProgram.uniforms.uTexture,
       source.attach(0)
     );
@@ -355,12 +344,12 @@ export default class FluidSimulation {
     this.bloomBlurProgram.bind();
     for (let i = 0; i < this.webGLContext.bloomFramebuffers.length; i++) {
       let dest = this.webGLContext.bloomFramebuffers[i];
-      this.webGLContext.gl.uniform2f(
+      this.gl.uniform2f(
         this.bloomBlurProgram.uniforms.texelSize,
         last.texelSizeX,
         last.texelSizeY
       );
-      this.webGLContext.gl.uniform1i(
+      this.gl.uniform1i(
         this.bloomBlurProgram.uniforms.uTexture,
         last.attach(0)
       );
@@ -368,40 +357,34 @@ export default class FluidSimulation {
       last = dest;
     }
 
-    this.webGLContext.gl.blendFunc(
-      this.webGLContext.gl.ONE,
-      this.webGLContext.gl.ONE
-    );
-    this.webGLContext.gl.enable(this.webGLContext.gl.BLEND);
+    this.gl.blendFunc(this.gl.ONE, this.gl.ONE);
+    this.gl.enable(this.gl.BLEND);
 
     for (let i = this.webGLContext.bloomFramebuffers.length - 2; i >= 0; i--) {
       let baseTex = this.webGLContext.bloomFramebuffers[i];
-      this.webGLContext.gl.uniform2f(
+      this.gl.uniform2f(
         this.bloomBlurProgram.uniforms.texelSize,
         last.texelSizeX,
         last.texelSizeY
       );
-      this.webGLContext.gl.uniform1i(
+      this.gl.uniform1i(
         this.bloomBlurProgram.uniforms.uTexture,
         last.attach(0)
       );
-      this.webGLContext.gl.viewport(0, 0, baseTex.width, baseTex.height);
+      this.gl.viewport(0, 0, baseTex.width, baseTex.height);
       this.webGLContext.blit(baseTex);
       last = baseTex;
     }
 
-    this.webGLContext.gl.disable(this.webGLContext.gl.BLEND);
+    this.gl.disable(this.gl.BLEND);
     this.bloomFinalProgram.bind();
-    this.webGLContext.gl.uniform2f(
+    this.gl.uniform2f(
       this.bloomFinalProgram.uniforms.texelSize,
       last.texelSizeX,
       last.texelSizeY
     );
-    this.webGLContext.gl.uniform1i(
-      this.bloomFinalProgram.uniforms.uTexture,
-      last.attach(0)
-    );
-    this.webGLContext.gl.uniform1f(
+    this.gl.uniform1i(this.bloomFinalProgram.uniforms.uTexture, last.attach(0));
+    this.gl.uniform1f(
       this.bloomFinalProgram.uniforms.intensity,
       config.BLOOM_INTENSITY
     );
@@ -409,121 +392,106 @@ export default class FluidSimulation {
   }
 
   applySunrays(source, mask, destination) {
-    this.webGLContext.gl.disable(this.webGLContext.gl.BLEND);
+    this.gl.disable(this.gl.BLEND);
     this.sunraysMaskProgram.bind();
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.sunraysMaskProgram.uniforms.uTexture,
       source.attach(0)
     );
     this.webGLContext.blit(mask);
 
     this.sunraysProgram.bind();
-    this.webGLContext.gl.uniform1f(
+    this.gl.uniform1f(
       this.sunraysProgram.uniforms.weight,
       config.SUNRAYS_WEIGHT
     );
-    this.webGLContext.gl.uniform1i(
-      this.sunraysProgram.uniforms.uTexture,
-      mask.attach(0)
-    );
+    this.gl.uniform1i(this.sunraysProgram.uniforms.uTexture, mask.attach(0));
     this.webGLContext.blit(destination);
   }
 
   blur(target, temp, iterations: number) {
     this.blurProgram.bind();
     for (let i = 0; i < iterations; i++) {
-      this.webGLContext.gl.uniform2f(
+      this.gl.uniform2f(
         this.blurProgram.uniforms.texelSize,
         target.texelSizeX,
         0.0
       );
-      this.webGLContext.gl.uniform1i(
-        this.blurProgram.uniforms.uTexture,
-        target.attach(0)
-      );
+      this.gl.uniform1i(this.blurProgram.uniforms.uTexture, target.attach(0));
       this.webGLContext.blit(temp);
 
-      this.webGLContext.gl.uniform2f(
+      this.gl.uniform2f(
         this.blurProgram.uniforms.texelSize,
         0.0,
         target.texelSizeY
       );
-      this.webGLContext.gl.uniform1i(
-        this.blurProgram.uniforms.uTexture,
-        temp.attach(0)
-      );
+      this.gl.uniform1i(this.blurProgram.uniforms.uTexture, temp.attach(0));
       this.webGLContext.blit(target);
     }
   }
 
   step(dt: number) {
-    this.webGLContext.gl.disable(this.webGLContext.gl.BLEND);
+    this.gl.disable(this.gl.BLEND);
     this.curlProgram.bind();
-    this.webGLContext.gl.uniform2f(
+    this.gl.uniform2f(
       this.curlProgram.uniforms.texelSize,
       this.webGLContext.velocity.texelSizeX,
       this.webGLContext.velocity.texelSizeY
     );
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.curlProgram.uniforms.uVelocity,
       this.webGLContext.velocity.read.attach(0)
     );
     this.webGLContext.blit(this.webGLContext.curl);
     this.vorticityProgram.bind();
-    this.webGLContext.gl.uniform2f(
+    this.gl.uniform2f(
       this.vorticityProgram.uniforms.texelSize,
       this.webGLContext.velocity.texelSizeX,
       this.webGLContext.velocity.texelSizeY
     );
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.vorticityProgram.uniforms.uVelocity,
       this.webGLContext.velocity.read.attach(0)
     );
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.vorticityProgram.uniforms.uCurl,
       this.webGLContext.curl.attach(1)
     );
-    this.webGLContext.gl.uniform1f(
-      this.vorticityProgram.uniforms.curl,
-      config.CURL
-    );
-    this.webGLContext.gl.uniform1f(this.vorticityProgram.uniforms.dt, dt);
+    this.gl.uniform1f(this.vorticityProgram.uniforms.curl, config.CURL);
+    this.gl.uniform1f(this.vorticityProgram.uniforms.dt, dt);
     this.webGLContext.blit(this.webGLContext.velocity.write);
     this.webGLContext.velocity.swap();
     this.divergenceProgram.bind();
-    this.webGLContext.gl.uniform2f(
+    this.gl.uniform2f(
       this.divergenceProgram.uniforms.texelSize,
       this.webGLContext.velocity.texelSizeX,
       this.webGLContext.velocity.texelSizeY
     );
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.divergenceProgram.uniforms.uVelocity,
       this.webGLContext.velocity.read.attach(0)
     );
     this.webGLContext.blit(this.webGLContext.divergence);
     this.clearProgram.bind();
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.clearProgram.uniforms.uTexture,
       this.webGLContext.pressure.read.attach(0)
     );
-    this.webGLContext.gl.uniform1f(
-      this.clearProgram.uniforms.value,
-      config.PRESSURE
-    );
+    this.gl.uniform1f(this.clearProgram.uniforms.value, config.PRESSURE);
     this.webGLContext.blit(this.webGLContext.pressure.write);
     this.webGLContext.pressure.swap();
     this.pressureProgram.bind();
-    this.webGLContext.gl.uniform2f(
+    this.gl.uniform2f(
       this.pressureProgram.uniforms.texelSize,
       this.webGLContext.velocity.texelSizeX,
       this.webGLContext.velocity.texelSizeY
     );
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.pressureProgram.uniforms.uDivergence,
       this.webGLContext.divergence.attach(0)
     );
     for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
-      this.webGLContext.gl.uniform1i(
+      this.gl.uniform1i(
         this.pressureProgram.uniforms.uPressure,
         this.webGLContext.pressure.read.attach(1)
       );
@@ -531,64 +499,58 @@ export default class FluidSimulation {
       this.webGLContext.pressure.swap();
     }
     this.gradienSubtractProgram.bind();
-    this.webGLContext.gl.uniform2f(
+    this.gl.uniform2f(
       this.gradienSubtractProgram.uniforms.texelSize,
       this.webGLContext.velocity.texelSizeX,
       this.webGLContext.velocity.texelSizeY
     );
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.gradienSubtractProgram.uniforms.uPressure,
       this.webGLContext.pressure.read.attach(0)
     );
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.gradienSubtractProgram.uniforms.uVelocity,
       this.webGLContext.velocity.read.attach(1)
     );
     this.webGLContext.blit(this.webGLContext.velocity.write);
     this.webGLContext.velocity.swap();
     this.advectionProgram.bind();
-    this.webGLContext.gl.uniform2f(
+    this.gl.uniform2f(
       this.advectionProgram.uniforms.texelSize,
       this.webGLContext.velocity.texelSizeX,
       this.webGLContext.velocity.texelSizeY
     );
     if (!this.webGLContext.ext.supportLinearFiltering)
-      this.webGLContext.gl.uniform2f(
+      this.gl.uniform2f(
         this.advectionProgram.uniforms.dyeTexelSize,
         this.webGLContext.velocity.texelSizeX,
         this.webGLContext.velocity.texelSizeY
       );
     let velocityId = this.webGLContext.velocity.read.attach(0);
-    this.webGLContext.gl.uniform1i(
-      this.advectionProgram.uniforms.uVelocity,
-      velocityId
-    );
-    this.webGLContext.gl.uniform1i(
-      this.advectionProgram.uniforms.uSource,
-      velocityId
-    );
-    this.webGLContext.gl.uniform1f(this.advectionProgram.uniforms.dt, dt);
-    this.webGLContext.gl.uniform1f(
+    this.gl.uniform1i(this.advectionProgram.uniforms.uVelocity, velocityId);
+    this.gl.uniform1i(this.advectionProgram.uniforms.uSource, velocityId);
+    this.gl.uniform1f(this.advectionProgram.uniforms.dt, dt);
+    this.gl.uniform1f(
       this.advectionProgram.uniforms.dissipation,
       config.VELOCITY_DISSIPATION
     );
     this.webGLContext.blit(this.webGLContext.velocity.write);
     this.webGLContext.velocity.swap();
     if (!this.webGLContext.ext.supportLinearFiltering)
-      this.webGLContext.gl.uniform2f(
+      this.gl.uniform2f(
         this.advectionProgram.uniforms.dyeTexelSize,
         this.webGLContext.dye.texelSizeX,
         this.webGLContext.dye.texelSizeY
       );
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.advectionProgram.uniforms.uVelocity,
       this.webGLContext.velocity.read.attach(0)
     );
-    this.webGLContext.gl.uniform1i(
+    this.gl.uniform1i(
       this.advectionProgram.uniforms.uSource,
       this.webGLContext.dye.read.attach(1)
     );
-    this.webGLContext.gl.uniform1f(
+    this.gl.uniform1f(
       this.advectionProgram.uniforms.dissipation,
       config.DENSITY_DISSIPATION
     );
@@ -603,12 +565,10 @@ export default class FluidSimulation {
     this.render(null);
   }
 
+  //EVENTS
   onResize() {
     this.webGLContext.initFramebuffers();
   }
-
-  //EVENTS
-
   mouseMove(e: MouseEvent) {
     let pointer = this.pointers[0];
     if (!pointer.down && config.ONLY_HOVER == false) return;

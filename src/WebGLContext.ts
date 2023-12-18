@@ -471,8 +471,8 @@ export default class WebGLContext {
       this.gl.NEAREST
     );
 
-    // this.initBloomFramebuffers();
-    // this.initSunraysFramebuffers();
+    this.initBloomFramebuffers();
+    this.initSunraysFramebuffers();
   }
 
   getResolution(resolution: number) {
