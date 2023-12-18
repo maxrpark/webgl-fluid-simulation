@@ -2,7 +2,7 @@ import { hashCode } from "../utils/helperFunc.js";
 import FluidSimulation from "../FluidSimulation.js";
 import ShaderCompiler from "./ShaderCompiler.js";
 import config from "../utils/config.js";
-
+// import imgTexture from "../assets/LDR_LLL1_0.png";
 const displayShaderSource = `
     precision highp float;
     precision highp sampler2D;
@@ -89,7 +89,9 @@ export default class Material {
   constructor(vertexShader: string) {
     this.fluidSimulation = new FluidSimulation();
     this.gl = this.fluidSimulation.webGLContext.gl;
-    this.ditheringTexture = this.createTextureAsync("LDR_LLL1_0.png"); // TODO
+    this.ditheringTexture = this.createTextureAsync(
+      "package/assets/LDR_LLL1_0.png"
+    ); // TODO
 
     this.vertexShader = vertexShader;
     this.fragmentShaderSource = displayShaderSource;
