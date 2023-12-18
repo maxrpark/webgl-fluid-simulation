@@ -1,27 +1,28 @@
+import Time from "./utils/Time.js";
+
 import Material from "./shaders/Material.js";
 import Program from "./Program.js";
 import BaseVertexShader from "./shaders/vertex/baseVertexShader.js";
 import BlurVertexShader from "./shaders/vertex/BlurVertexShader.js";
 
-import Time from "./utils/Time.js";
-
-import BlurShader from "./shaders/fragment/BlurShader.js";
-import CopyShader from "./shaders/fragment/CopyShader.js";
-import GradientSubtractShader from "./shaders/fragment/GradientSubtractShader.js";
-import PressureShader from "./shaders/fragment/PressureShader.js";
-import VorticityShader from "./shaders/fragment/VorticityShader.js";
-import CurlShader from "./shaders/fragment/CurlShader.js";
-import DivergenceShader from "./shaders/fragment/DivergenceShader.js";
-import AdvectionShader from "./shaders/fragment/AdvectionShader.js";
-import SplatShader from "./shaders/fragment/SplatShader.js";
-import SunraysShader from "./shaders/fragment/SunraysShader.js";
-import SunRaysMaskShader from "./shaders/fragment/SunRaysMaskShader.js";
-import BloomFinalShader from "./shaders/fragment/bloomFinalShader.js";
-import BloomBlurShader from "./shaders/fragment/BloomBlurShader.js";
-import BloomPrefilterShader from "./shaders/fragment/BloomPrefilterShader.js";
-import CheckerboardShader from "./shaders/fragment/CheckerboardShader.js";
-import ColorShader from "./shaders/fragment/ColorShader.js";
-import ClearShader from "./shaders/fragment/ClearShader.js";
+import {
+  BlurShader,
+  CopyShader,
+  GradientSubtractShader,
+  PressureShader,
+  VorticityShader,
+  CurlShader,
+  DivergenceShader,
+  AdvectionShader,
+  SplatShader,
+  SunraysShader,
+  SunRaysMaskShader,
+  BloomFinalShader,
+  BloomBlurShader,
+  BloomPrefilterShader,
+  ColorShader,
+  ClearShader,
+} from "./shaders/fragment/index.js";
 import {
   generateColor,
   normalizeColor,
@@ -49,37 +50,18 @@ export default class FluidSimulation {
   canvas: Canvas;
   webGLContext: any;
   displayMaterial: Material;
+  time: Time;
+
+  colorUpdateTimer: number;
 
   pointers: Pointer[] = [];
   splatStack: any[] = [];
 
-  baseVertexShader: BaseVertexShader;
-  blurVertexShader: BlurVertexShader;
-  blurShader: BlurShader;
-  copyShader: CopyShader;
-  clearShader: ClearShader;
-  colorShader: ColorShader;
-  checkerboardShader: CheckerboardShader;
-  bloomPrefilterShader: BloomPrefilterShader;
-  bloomBlurShader: BloomBlurShader;
-  bloomFinalShader: BloomFinalShader;
-  sunraysMaskShader: SunRaysMaskShader;
-  sunraysShader: SunraysShader;
-  splatShader: SplatShader;
-  advectionShader: AdvectionShader;
-  divergenceShader: DivergenceShader;
-  curlShader: CurlShader;
-  vorticityShader: VorticityShader;
-  pressureShader: PressureShader;
-  gradientSubtractShader: GradientSubtractShader;
-
   // PROGRAMS
-
   blurProgram: Program;
   copyProgram: Program;
   clearProgram: Program;
   colorProgram: Program;
-  checkerboardProgram: Program;
   bloomPrefilterProgram: Program;
   bloomBlurProgram: Program;
   bloomFinalProgram: Program;
@@ -92,10 +74,6 @@ export default class FluidSimulation {
   vorticityProgram: Program;
   pressureProgram: Program;
   gradienSubtractProgram: Program;
-
-  time: Time;
-
-  colorUpdateTimer: number;
 
   constructor(canvas?: HTMLCanvasElement) {
     if (instance) {
@@ -136,96 +114,74 @@ export default class FluidSimulation {
       return /Mobi|Android/i.test(navigator.userAgent);
     }
 
-    this.baseVertexShader = new BaseVertexShader();
-    this.blurVertexShader = new BlurVertexShader();
-    this.blurShader = new BlurShader();
-    this.copyShader = new CopyShader();
-    this.clearShader = new ClearShader();
-    this.colorShader = new ColorShader();
-    this.checkerboardShader = new CheckerboardShader();
-    this.bloomPrefilterShader = new BloomPrefilterShader();
-    this.bloomBlurShader = new BloomBlurShader();
-    this.bloomFinalShader = new BloomFinalShader();
-    this.sunraysMaskShader = new SunRaysMaskShader();
-    this.sunraysShader = new SunraysShader();
-    this.splatShader = new SplatShader();
-    this.advectionShader = new AdvectionShader();
-    this.divergenceShader = new DivergenceShader();
-    this.curlShader = new CurlShader();
-    this.vorticityShader = new VorticityShader();
-    this.pressureShader = new PressureShader();
-    this.gradientSubtractShader = new GradientSubtractShader();
+    this.displayMaterial = new Material(new BaseVertexShader().shader); // EXTEND PROGRAM
 
-    this.displayMaterial = new Material(this.baseVertexShader.shader);
+    this.blurProgram = new Program({
+      vertexShader: new BlurVertexShader().shader,
+      fragmentShader: new BlurShader().shader,
+    });
+    this.copyProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new CopyShader().shader,
+    });
+    this.clearProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new ClearShader().shader,
+    });
+    this.colorProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new ColorShader().shader,
+    });
 
-    this.blurProgram = new Program(
-      this.blurVertexShader.shader,
-      this.blurShader.shader
-    );
-    this.copyProgram = new Program(
-      this.baseVertexShader.shader,
-      this.copyShader.shader
-    );
-    this.clearProgram = new Program(
-      this.baseVertexShader.shader,
-      this.clearShader.shader
-    );
-    this.colorProgram = new Program(
-      this.baseVertexShader.shader,
-      this.colorShader.shader
-    );
-    this.checkerboardProgram = new Program(
-      this.baseVertexShader.shader,
-      this.checkerboardShader.shader
-    );
-    this.bloomPrefilterProgram = new Program(
-      this.baseVertexShader.shader,
-      this.bloomPrefilterShader.shader
-    );
-    this.bloomBlurProgram = new Program(
-      this.baseVertexShader.shader,
-      this.bloomBlurShader.shader
-    );
-    this.bloomFinalProgram = new Program(
-      this.baseVertexShader.shader,
-      this.bloomFinalShader.shader
-    );
-    this.sunraysMaskProgram = new Program(
-      this.baseVertexShader.shader,
-      this.sunraysMaskShader.shader
-    );
-    this.sunraysProgram = new Program(
-      this.baseVertexShader.shader,
-      this.sunraysShader.shader
-    );
-    this.splatProgram = new Program(
-      this.baseVertexShader.shader,
-      this.splatShader.shader
-    );
-    this.advectionProgram = new Program(
-      this.baseVertexShader.shader,
-      this.advectionShader.shader
-    );
-    this.divergenceProgram = new Program(
-      this.baseVertexShader.shader,
-      this.divergenceShader.shader
-    );
-    this.curlProgram = new Program(
-      this.baseVertexShader.shader,
-      this.curlShader.shader
-    );
-    this.vorticityProgram = new Program(
-      this.baseVertexShader.shader,
-      this.vorticityShader.shader
-    );
-    this.pressureProgram = new Program(
-      this.baseVertexShader.shader,
-      this.pressureShader.shader
-    );
-    this.gradienSubtractProgram = new Program(
-      this.baseVertexShader.shader,
-      this.gradientSubtractShader.shader
-    );
+    this.bloomPrefilterProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new BloomPrefilterShader().shader,
+    });
+    this.bloomBlurProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new BloomBlurShader().shader,
+    });
+    this.bloomFinalProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new BloomFinalShader().shader,
+    });
+    this.sunraysMaskProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new SunRaysMaskShader().shader,
+    });
+    this.sunraysProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new SunraysShader().shader,
+    });
+    this.splatProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new SplatShader().shader,
+    });
+    this.advectionProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new AdvectionShader().shader,
+    });
+
+    this.divergenceProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new DivergenceShader().shader,
+    });
+    this.curlProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new CurlShader().shader,
+    });
+    this.vorticityProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new VorticityShader().shader,
+    });
+    this.pressureProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new PressureShader().shader,
+    });
+    this.gradienSubtractProgram = new Program({
+      vertexShader: null,
+      fragmentShader: new GradientSubtractShader().shader,
+    });
 
     this.webGLContext.initFramebuffers();
 
@@ -233,51 +189,6 @@ export default class FluidSimulation {
     if (error !== this.webGLContext.gl.NO_ERROR) {
       console.error("WebGL error:", error);
     }
-
-    const splat = (
-      x: number,
-      y: number,
-      dx: number,
-      dy: number,
-      color: { r: any; g: any; b: any; a?: number }
-    ) => {
-      this.splatProgram.bind();
-
-      this.webGLContext.gl.uniform1i(
-        this.splatProgram.uniforms.uTarget,
-        this.webGLContext.velocity.read.attach(0)
-      );
-      this.webGLContext.gl.uniform1f(
-        this.splatProgram.uniforms.aspectRatio,
-        this.canvas.width / this.canvas.height
-      );
-      this.webGLContext.gl.uniform2f(this.splatProgram.uniforms.point, x, y);
-      this.webGLContext.gl.uniform3f(
-        this.splatProgram.uniforms.color,
-        dx,
-        dy,
-        0.0
-      );
-      this.webGLContext.gl.uniform1f(
-        this.splatProgram.uniforms.radius,
-        this.correctRadius(config.SPLAT_RADIUS / 100.0)
-      );
-      this.webGLContext.blit(this.webGLContext.velocity.write);
-      this.webGLContext.velocity.swap();
-
-      this.webGLContext.gl.uniform1i(
-        this.splatProgram.uniforms.uTarget,
-        this.webGLContext.dye.read.attach(0)
-      );
-      this.webGLContext.gl.uniform3f(
-        this.splatProgram.uniforms.color,
-        color.r,
-        color.g,
-        color.b
-      );
-      this.webGLContext.blit(this.webGLContext.dye.write);
-      this.webGLContext.dye.swap();
-    };
 
     const multipleSplats = (amount: number) => {
       for (let i = 0; i < amount; i++) {
@@ -289,7 +200,7 @@ export default class FluidSimulation {
         const y = Math.random();
         const dx = 1000 * (Math.random() - 0.5);
         const dy = 1000 * (Math.random() - 0.5);
-        splat(x, y, dx, dy, color);
+        this.splat(x, y, dx, dy, color);
       }
     };
     multipleSplats(Math.random() * 20 + 5);
@@ -297,15 +208,6 @@ export default class FluidSimulation {
     // this.updateKeywords();
     this.update();
   }
-
-  // MOVE TO MATERIAL
-  // updateKeywords() {
-  //   let displayKeywords = [];
-  //   if (config.SHADING) displayKeywords.push("SHADING");
-  //   if (config.BLOOM) displayKeywords.push("BLOOM");
-  //   if (config.SUNRAYS) displayKeywords.push("SUNRAYS");
-  //   this.displayMaterial.setKeywords(displayKeywords);
-  // }
 
   drawColor(target: any, color: any) {
     this.colorProgram.bind();
@@ -353,7 +255,6 @@ export default class FluidSimulation {
 
     if (!config.TRANSPARENT)
       this.drawColor(target, normalizeColor(config.BACK_COLOR));
-    if (target == null && config.TRANSPARENT) drawCheckerboard(target);
 
     this.displayMaterial.drawDisplay(target);
   }
@@ -438,15 +339,6 @@ export default class FluidSimulation {
     if (aspectRatio > 1) radius *= aspectRatio;
     return radius;
   }
-
-  drawCheckerboard = (target) => {
-    checkerboardProgram.bind();
-    this.webGLContext.gl.uniform1f(
-      checkerboardProgram.uniforms.aspectRatio,
-      this.canvas.width / this.canvas.height
-    );
-    this.webGLContext.blit(target);
-  };
 
   applyBloom(source, destination) {
     if (this.webGLContext.bloomFramebuffers.length < 2) return;

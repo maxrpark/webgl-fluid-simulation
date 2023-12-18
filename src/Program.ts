@@ -1,8 +1,14 @@
 import FluidSimulation from "./FluidSimulation.js";
+import BaseVertexShader from "./shaders/vertex/baseVertexShader.js";
 
+interface Props {
+  vertexShader: string | null;
+  fragmentShader: string;
+}
 export default class Program {
   fluidSimulation: FluidSimulation;
   gl: WebGL2RenderingContext;
+  vertexShader: any;
 
   uniforms: {
     uCurl(uCurl: any, arg1: any): unknown;
@@ -28,16 +34,20 @@ export default class Program {
     uVelocity: any;
   };
   program: WebGLProgram | null;
-  constructor(vertexShader: string, fragmentShader: string) {
+  constructor({ fragmentShader, vertexShader }: Props) {
     this.fluidSimulation = new FluidSimulation();
     this.gl = this.fluidSimulation.webGLContext.gl;
+
+    this.vertexShader = vertexShader
+      ? vertexShader
+      : new BaseVertexShader().shader;
 
     this.uniforms = {
       uTexture: null,
       texelSize: null,
       uVelocity: null,
     };
-    this.program = this.createProgram(vertexShader, fragmentShader);
+    this.program = this.createProgram(this.vertexShader, fragmentShader);
     this.uniforms = this.getUniforms(this.program); // TODO
   }
 

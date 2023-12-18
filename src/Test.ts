@@ -20,7 +20,6 @@ import SunRaysMaskShader from "./shaders/fragment/SunRaysMaskShader.js";
 import BloomFinalShader from "./shaders/fragment/bloomFinalShader.js";
 import BloomBlurShader from "./shaders/fragment/BloomBlurShader.js";
 import BloomPrefilterShader from "./shaders/fragment/BloomPrefilterShader.js";
-import CheckerboardShader from "./shaders/fragment/CheckerboardShader.js";
 import ColorShader from "./shaders/fragment/ColorShader.js";
 import ClearShader from "./shaders/fragment/ClearShader.js";
 import { generateColor, scaleByPixelRatio, wrap } from "./utils/helperFunc.js";
@@ -132,7 +131,6 @@ export default class FluidSimulation {
   copyShader: CopyShader;
   clearShader: ClearShader;
   colorShader: ColorShader;
-  checkerboardShader: CheckerboardShader;
   bloomPrefilterShader: BloomPrefilterShader;
   bloomBlurShader: BloomBlurShader;
   bloomFinalShader: BloomFinalShader;
@@ -152,7 +150,6 @@ export default class FluidSimulation {
   copyProgram: Program;
   clearProgram: Program;
   colorProgram: Program;
-  checkerboardProgram: Program;
   bloomPrefilterProgram: Program;
   bloomBlurProgram: Program;
   bloomFinalProgram: Program;
@@ -347,7 +344,7 @@ export default class FluidSimulation {
     this.copyShader = new CopyShader();
     this.clearShader = new ClearShader();
     this.colorShader = new ColorShader();
-    this.checkerboardShader = new CheckerboardShader();
+
     this.bloomPrefilterShader = new BloomPrefilterShader();
     this.bloomBlurShader = new BloomBlurShader();
     this.bloomFinalShader = new BloomFinalShader();
@@ -379,10 +376,7 @@ export default class FluidSimulation {
       this.baseVertexShader.shader,
       this.colorShader.shader
     );
-    this.checkerboardProgram = new Program(
-      this.baseVertexShader.shader,
-      this.checkerboardShader.shader
-    );
+
     this.bloomPrefilterProgram = new Program(
       this.baseVertexShader.shader,
       this.bloomPrefilterShader.shader
@@ -1322,15 +1316,6 @@ export default class FluidSimulation {
     if (aspectRatio > 1) radius *= aspectRatio;
     return radius;
   }
-
-  drawCheckerboard = (target) => {
-    checkerboardProgram.bind();
-    this.webGLContext.gl.uniform1f(
-      checkerboardProgram.uniforms.aspectRatio,
-      this.canvas.width / this.canvas.height
-    );
-    this.blit(target);
-  };
 
   applyBloom(source, destination) {
     if (this.bloomFramebuffers.length < 2) return;
