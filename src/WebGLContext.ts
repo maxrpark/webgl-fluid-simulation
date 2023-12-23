@@ -28,9 +28,6 @@ export default class WebGLContext {
   sunrays: any; // TODO;
   sunraysTemp: any; // TODO;
 
-  pointers: any[] = [];
-  splatStack: any[] = [];
-
   constructor() {
     this.fluidSimulation = new FluidSimulation();
     this.canvas = this.fluidSimulation.canvas.canvas;
@@ -367,7 +364,7 @@ export default class WebGLContext {
     this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
 
     this.gl.enableVertexAttribArray(0);
-    const func = (target: Target, clear = false) => {
+    const func = (target: FramebufferObject, clear = false) => {
       if (target == null) {
         this.gl.viewport(
           0,
@@ -475,21 +472,8 @@ export default class WebGLContext {
     this.initSunraysFramebuffers();
   }
 
-  getResolution(resolution: number) {
-    let aspectRatio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
-    if (aspectRatio < 1) aspectRatio = 1.0 / aspectRatio;
-
-    let min = Math.round(resolution);
-    let max = Math.round(resolution * aspectRatio);
-
-    if (this.gl.drawingBufferWidth > this.gl.drawingBufferHeight)
-      return { width: max, height: min };
-    else return { width: min, height: max };
-  }
-
   initBloomFramebuffers() {
     let res = this.getResolution(config.BLOOM_RESOLUTION);
-
     const texType = this.ext.halfFloatTexType;
     const rgba = this.ext.formatRGBA!;
     const filtering = this.ext.supportLinearFiltering
@@ -508,7 +492,6 @@ export default class WebGLContext {
     for (let i = 0; i < config.BLOOM_ITERATIONS; i++) {
       let width = res.width >> (i + 1);
       let height = res.height >> (i + 1);
-
       if (width < 2 || height < 2) break;
 
       const framebuffer = this.createFBO(
@@ -548,6 +531,17 @@ export default class WebGLContext {
       texType,
       filtering
     );
+  }
+  getResolution(resolution: number) {
+    let aspectRatio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
+    if (aspectRatio < 1) aspectRatio = 1.0 / aspectRatio;
+
+    let min = Math.round(resolution);
+    let max = Math.round(resolution * aspectRatio);
+
+    if (this.gl.drawingBufferWidth > this.gl.drawingBufferHeight)
+      return { width: max, height: min };
+    else return { width: min, height: max };
   }
 
   update() {}

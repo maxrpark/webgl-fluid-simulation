@@ -11,45 +11,68 @@ export default class Program {
   vertexShader: any;
 
   uniforms: {
-    // uCurl(uCurl: any, arg1: any): unknown;
-    // curl(curl: any, CURL: number): unknown;
-    // dt(dt: any, dt1: number): unknown;
-    // value(value: any, PRESSURE: number): unknown;
-    // uDivergence(uDivergence: any, arg1: any): unknown;
-    // uPressure(uPressure: any, arg1: any): unknown;
-    // dyeTexelSize(dyeTexelSize: any, texelSizeX: any, texelSizeY: any): unknown;
-    // uSource(uSource: any, velocityId: any): unknown;
-    // dissipation(dissipation: any, VELOCITY_DISSIPATION: number): unknown;
-    // color(color: any, r: any, g: any, b: any, arg4: number): unknown;
-    // aspectRatio(aspectRatio: any, arg1: number): unknown;
-    // curve(curve: any, curve0: number, curve1: number, curve2: number): unknown;
-    // threshold(threshold: any, BLOOM_THRESHOLD: number): unknown;
-    // intensity(intensity: any, BLOOM_INTENSITY: number): unknown;
-    // weight(weight: any, SUNRAYS_WEIGHT: number): unknown;
-    // uTarget(uTarget: any, arg1: any): unknown;
-    // point(point: any, x: any, y: any): unknown;
-    // radius(radius: any, arg1: any): unknown;
     texelSize: any;
     uTexture: any;
     uVelocity: any;
+    uTarget: any;
+    aspectRatio: any;
+    point: any;
+    radius: any;
+    curve: any;
+    threshold: any;
+    intensity: any;
 
     uBloom: any;
     uDithering: any;
     ditherScale: any;
     uSunrays: any;
+    color: any;
+    weight: any;
+    uCurl: any;
+    curl: any;
+    dt: any;
+    value: any;
+    uDivergence: any;
+
+    uPressure: any;
+    dyeTexelSize: any;
+
+    uSource: any;
+    dissipation: any;
   };
   program: WebGLProgram | null;
   constructor({ fragmentShader, vertexShader }: Props) {
     this.fluidSimulation = new FluidSimulation();
     this.gl = this.fluidSimulation.webGLContext.gl;
     this.uniforms = {
-      uTexture: null,
       texelSize: null,
+      uTexture: null,
       uVelocity: null,
+      uTarget: null,
+      aspectRatio: null,
+      point: null,
+      radius: null,
+      curve: null,
+      threshold: null,
+      intensity: null,
+
       uBloom: null,
       uDithering: null,
       ditherScale: null,
       uSunrays: null,
+      color: null,
+      weight: null,
+      uCurl: null,
+      curl: null,
+      dt: null,
+      value: null,
+      uDivergence: null,
+
+      uPressure: null,
+      dyeTexelSize: null,
+
+      uSource: null,
+      dissipation: null,
     };
 
     const newProgram = new CreateProgram({

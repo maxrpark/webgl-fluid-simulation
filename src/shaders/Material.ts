@@ -3,6 +3,7 @@ import FluidSimulation from "../FluidSimulation.js";
 import ShaderCompiler from "./ShaderCompiler.js";
 import config from "../utils/config.js";
 import CreateProgram from "./CreateProgram.js";
+import { shaderType } from "../ts/global.js";
 const fragmentShader = `
     precision highp float;
     precision highp sampler2D;
@@ -117,7 +118,7 @@ export default class Material {
 
     if (this.program == null) {
       let fragmentShader = new ShaderCompiler(
-        this.gl.FRAGMENT_SHADER, // TODO
+        shaderType.FRAGMENT,
         this.fragmentShaderSource,
         keywords
       );
@@ -139,57 +140,6 @@ export default class Material {
 
   bind() {
     this.gl.useProgram(this.activeProgram);
-  }
-
-  drawDisplay(target: any) {
-    let width = target == null ? this.gl.drawingBufferWidth : target.width;
-    let height = target == null ? this.gl.drawingBufferHeight : target.height;
-
-    this.bind();
-    if (config.SHADING)
-      this.gl.uniform2f(this.uniforms.texelSize, 1.0 / width, 1.0 / height);
-
-    this.gl.uniform1i(
-      this.uniforms.uTexture,
-      this.fluidSimulation.webGLContext.dye.read.attach(0)
-    );
-
-    if (config.BLOOM) {
-      this.gl.uniform1i(
-        this.uniforms.uBloom,
-        this.fluidSimulation.webGLContext.bloom.attach(1)
-      );
-
-      this.gl.uniform1i(
-        this.uniforms.uDithering,
-        this.ditheringTexture.attach(2)
-      );
-      let scale = this.getTextureScale(this.ditheringTexture, width, height);
-      this.gl.uniform2f(this.uniforms.ditherScale, scale.x, scale.y);
-    }
-    if (config.SUNRAYS)
-      this.gl.uniform1i(
-        this.uniforms.uSunrays,
-        this.fluidSimulation.webGLContext.sunrays.attach(3)
-      );
-
-    this.fluidSimulation.webGLContext.blit(target); // TODO
-  }
-
-  getTextureScale(
-    texture: {
-      texture?: WebGLTexture | null;
-      width: any;
-      height: any;
-      attach?: (id: number) => number;
-    },
-    width: number,
-    height: number
-  ) {
-    return {
-      x: width / texture.width,
-      y: height / texture.height,
-    };
   }
 
   createTextureAsync(url: string) {

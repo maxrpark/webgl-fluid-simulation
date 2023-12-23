@@ -76,6 +76,18 @@ export default class FluidSimulation {
   pressureProgram: Program;
   gradienSubtractProgram: Program;
 
+  // dye: any; // TODO
+  // velocity: any; // TODO;
+  // divergence: any; // TODO;
+  // curl: any; // TODO;
+  // pressure: any; // TODO;
+  // bloom: any; // TODO;
+  // bloomFramebuffers: any[] = []; // TODO;
+  // sunrays: any; // TODO;
+  // sunraysTemp: any; // TODO;
+  // color: any;
+  // ditherScale: any;
+
   constructor(canvas?: HTMLCanvasElement) {
     if (instance) {
       return instance;
@@ -83,13 +95,13 @@ export default class FluidSimulation {
 
     instance = this;
     this.canvas = new Canvas(canvas!)!;
-    this.canvas.on("mousemove", (e: Event) => this.mouseMove(e));
+    this.canvas.on("mousemove", (e: MouseEvent) => this.mouseMove(e));
     this.canvas.on("mouseup", () => this.mouseUp());
-    this.canvas.on("touchstart", (e: Event) => this.touchStart(e));
-    this.canvas.on("touchmove", (e: Event) => this.touchMove(e));
-    this.canvas.on("touchend", (e: Event) => this.touchEnd(e));
-    this.canvas.on("keydown", (e: Event) => this.keyDown(e));
-    this.canvas.on("resize", (e: Event) => this.onResize());
+    this.canvas.on("touchstart", (e: MouseEvent) => this.touchStart(e));
+    this.canvas.on("touchmove", (e: MouseEvent) => this.touchMove(e));
+    this.canvas.on("touchend", (e: MouseEvent) => this.touchEnd(e));
+    this.canvas.on("keydown", (e: MouseEvent) => this.keyDown(e));
+    this.canvas.on("resize", (e: MouseEvent) => this.onResize());
 
     this.colorUpdateTimer = 0;
 
@@ -176,24 +188,22 @@ export default class FluidSimulation {
       console.error("WebGL error:", error);
     }
 
-    const multipleSplats = (amount: number) => {
-      for (let i = 0; i < amount; i++) {
-        const color = generateColor();
-        color.r *= 10.0;
-        color.g *= 10.0;
-        color.b *= 10.0;
-        const x = Math.random();
-        const y = Math.random();
-        const dx = 1000 * (Math.random() - 0.5);
-        const dy = 1000 * (Math.random() - 0.5);
-        this.splat(x, y, dx, dy, color);
-      }
-    };
-    multipleSplats(Math.random() * 20 + 5);
-
+    this.multipleSplats(Math.random() * 20 + 5);
     this.update();
   }
-
+  multipleSplats(amount: number) {
+    for (let i = 0; i < amount; i++) {
+      const color = generateColor();
+      color.r *= 10.0;
+      color.g *= 10.0;
+      color.b *= 10.0;
+      const x = Math.random();
+      const y = Math.random();
+      const dx = 1000 * (Math.random() - 0.5);
+      const dy = 1000 * (Math.random() - 0.5);
+      this.splat(x, y, dx, dy, color);
+    }
+  }
   drawColor(target: any, color: any) {
     this.colorProgram.bind();
     this.gl.uniform4f(
@@ -204,38 +214,6 @@ export default class FluidSimulation {
       1
     );
     this.webGLContext.blit(target);
-  }
-
-  render(target: any) {
-    if (config.BLOOM)
-      this.applyBloom(this.webGLContext.dye.read, this.webGLContext.bloom);
-    if (config.SUNRAYS) {
-      this.applySunrays(
-        this.webGLContext.dye.read,
-        this.webGLContext.dye.write,
-        this.webGLContext.sunrays
-      );
-      this.blur(this.webGLContext.sunrays, this.webGLContext.sunraysTemp, 1);
-    }
-
-    if (target == null || !config.TRANSPARENT) {
-      this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
-      this.gl.enable(this.gl.BLEND);
-    } else {
-      this.gl.disable(this.gl.BLEND);
-    }
-
-    if (target == null || !config.TRANSPARENT) {
-      this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
-      this.gl.enable(this.gl.BLEND);
-    } else {
-      this.gl.disable(this.gl.BLEND);
-    }
-
-    if (!config.TRANSPARENT)
-      this.drawColor(target, normalizeColor(config.BACK_COLOR));
-
-    this.displayMaterial.drawDisplay(target);
   }
 
   updateColors(dt: number) {
@@ -252,7 +230,7 @@ export default class FluidSimulation {
   }
 
   applyInputs() {
-    if (this.splatStack.length > 0) multipleSplats(this.splatStack.pop());
+    if (this.splatStack.length > 0) this.multipleSplats(this.splatStack.pop());
 
     this.pointers.forEach((p) => {
       if (p.moved) {
@@ -314,7 +292,7 @@ export default class FluidSimulation {
     return radius;
   }
 
-  applyBloom(source, destination) {
+  applyBloom(source: any, destination: any) {
     if (this.webGLContext.bloomFramebuffers.length < 2) return;
 
     let last = destination;
@@ -342,6 +320,7 @@ export default class FluidSimulation {
     this.webGLContext.blit(last);
 
     this.bloomBlurProgram.bind();
+
     for (let i = 0; i < this.webGLContext.bloomFramebuffers.length; i++) {
       let dest = this.webGLContext.bloomFramebuffers[i];
       this.gl.uniform2f(
@@ -391,7 +370,7 @@ export default class FluidSimulation {
     this.webGLContext.blit(destination);
   }
 
-  applySunrays(source, mask, destination) {
+  applySunrays(source: any, mask: any, destination: any) {
     this.gl.disable(this.gl.BLEND);
     this.sunraysMaskProgram.bind();
     this.gl.uniform1i(
@@ -409,7 +388,7 @@ export default class FluidSimulation {
     this.webGLContext.blit(destination);
   }
 
-  blur(target, temp, iterations: number) {
+  blur(target: any, temp: any, iterations: number) {
     this.blurProgram.bind();
     for (let i = 0; i < iterations; i++) {
       this.gl.uniform2f(
@@ -556,6 +535,100 @@ export default class FluidSimulation {
     );
     this.webGLContext.blit(this.webGLContext.dye.write);
     this.webGLContext.dye.swap();
+  }
+
+  drawDisplay(target: any) {
+    let width = target == null ? this.gl.drawingBufferWidth : target.width;
+    let height = target == null ? this.gl.drawingBufferHeight : target.height;
+
+    this.displayMaterial.bind();
+    if (config.SHADING)
+      this.gl.uniform2f(
+        this.displayMaterial.uniforms.texelSize,
+        1.0 / width,
+        1.0 / height
+      );
+
+    this.gl.uniform1i(
+      this.displayMaterial.uniforms.uTexture,
+      this.webGLContext.dye.read.attach(0)
+    );
+    if (config.BLOOM) {
+      this.gl.uniform1i(
+        this.displayMaterial.uniforms.uBloom,
+        this.webGLContext.bloom.attach(1)
+      );
+
+      this.gl.uniform1i(
+        this.displayMaterial.uniforms.uDithering,
+        this.displayMaterial.ditheringTexture.attach(2)
+      );
+      let scale = this.getTextureScale(
+        this.displayMaterial.ditheringTexture,
+        width,
+        height
+      );
+      this.gl.uniform2f(
+        this.displayMaterial.uniforms.ditherScale,
+        scale.x,
+        scale.y
+      );
+    }
+    if (config.SUNRAYS)
+      this.gl.uniform1i(
+        this.displayMaterial.uniforms.uSunrays,
+        this.webGLContext.sunrays.attach(3)
+      );
+
+    this.webGLContext.blit(target);
+  }
+
+  getTextureScale(
+    texture: {
+      texture?: WebGLTexture | null;
+      width: any;
+      height: any;
+      attach?: (id: number) => number;
+    },
+    width: number,
+    height: number
+  ) {
+    return {
+      x: width / texture.width,
+      y: height / texture.height,
+    };
+  }
+
+  render(target: any) {
+    if (config.BLOOM)
+      this.applyBloom(this.webGLContext.dye.read, this.webGLContext.bloom);
+    if (config.SUNRAYS) {
+      this.applySunrays(
+        this.webGLContext.dye.read,
+        this.webGLContext.dye.write,
+        this.webGLContext.sunrays
+      );
+      this.blur(this.webGLContext.sunrays, this.webGLContext.sunraysTemp, 1);
+    }
+
+    if (target == null || !config.TRANSPARENT) {
+      this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
+      this.gl.enable(this.gl.BLEND);
+    } else {
+      this.gl.disable(this.gl.BLEND);
+    }
+
+    if (target == null || !config.TRANSPARENT) {
+      this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
+      this.gl.enable(this.gl.BLEND);
+    } else {
+      this.gl.disable(this.gl.BLEND);
+    }
+
+    if (!config.TRANSPARENT)
+      this.drawColor(target, normalizeColor(config.BACK_COLOR));
+
+    this.drawDisplay(target);
   }
 
   update() {
