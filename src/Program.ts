@@ -42,7 +42,7 @@ export default class Program {
   };
   program: WebGLProgram | null;
   constructor({ fragmentShader, vertexShader }: Props) {
-    this.fluidSimulation = new FluidSimulation();
+    this.fluidSimulation = new FluidSimulation({});
     this.gl = this.fluidSimulation.webGLContext.gl;
     this.uniforms = {
       texelSize: null,

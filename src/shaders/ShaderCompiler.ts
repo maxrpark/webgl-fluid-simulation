@@ -11,7 +11,7 @@ export default class ShaderCompiler {
     sourceShader: string,
     keywords: string[] | null
   ) {
-    this.fluidSimulation = new FluidSimulation();
+    this.fluidSimulation = new FluidSimulation({});
     this.gl = this.fluidSimulation.webGLContext.gl;
 
     let k = keywords?.length

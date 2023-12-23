@@ -1,7 +1,6 @@
 import { hashCode } from "../utils/helperFunc.js";
 import FluidSimulation from "../FluidSimulation.js";
 import ShaderCompiler from "./ShaderCompiler.js";
-import config from "../utils/config.js";
 import CreateProgram from "./CreateProgram.js";
 import { shaderType } from "../ts/global.js";
 const fragmentShader = `
@@ -28,7 +27,7 @@ const fragmentShader = `
     void main () {
         vec3 c = texture2D(uTexture, vUv).rgb;
 
-    #ifdef SHADING
+    #ifdef shading
         vec3 lc = texture2D(uTexture, vL).rgb;
         vec3 rc = texture2D(uTexture, vR).rgb;
         vec3 tc = texture2D(uTexture, vT).rgb;
@@ -88,7 +87,7 @@ export default class Material {
 
   ditheringTexture: any;
   constructor(vertexShader: string) {
-    this.fluidSimulation = new FluidSimulation();
+    this.fluidSimulation = new FluidSimulation({});
     this.gl = this.fluidSimulation.webGLContext.gl;
     this.ditheringTexture = this.createTextureAsync(
       "package/assets/LDR_LLL1_0.png"
@@ -211,9 +210,9 @@ export default class Material {
 
   updateKeywords() {
     let displayKeywords = [];
-    if (config.SHADING) displayKeywords.push("SHADING");
-    if (config.BLOOM) displayKeywords.push("BLOOM");
-    if (config.SUNRAYS) displayKeywords.push("SUNRAYS");
+    if (this.fluidSimulation.config.shading) displayKeywords.push("shading");
+    if (this.fluidSimulation.config.BLOOM) displayKeywords.push("BLOOM");
+    if (this.fluidSimulation.config.SUNRAYS) displayKeywords.push("SUNRAYS");
 
     this.createFragmentShader(displayKeywords);
   }

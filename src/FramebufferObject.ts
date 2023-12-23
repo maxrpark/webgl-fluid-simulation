@@ -21,7 +21,7 @@ export class FramebufferObject {
 
   constructor(props: Props) {
     Object.assign(this, props);
-    this.fluidSimulation = new FluidSimulation();
+    this.fluidSimulation = new FluidSimulation({});
   }
 
   attach(textureUnit: number) {

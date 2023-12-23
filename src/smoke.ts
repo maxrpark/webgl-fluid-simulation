@@ -37,8 +37,8 @@ let config = {
   CAPTURE_RESOLUTION: 512,
   DENSITY_DISSIPATION: 1,
   VELOCITY_DISSIPATION: 0.2,
-  PRESSURE: 0.8,
-  PRESSURE_ITERATIONS: 20,
+  pressure: 0.8,
+  pressureIterations: 20,
   CURL: 30,
   SPLAT_RADIUS: 0.25,
   SPLAT_FORCE: 6000,
@@ -905,7 +905,6 @@ const blit = (() => {
     } else {
       gl.viewport(0, 0, target.width, target.height);
       gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
-      console.log(target.fbo);
     }
     if (clear) {
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -1348,7 +1347,7 @@ function step(dt) {
 
   clearProgram.bind();
   gl.uniform1i(clearProgram.uniforms.uTexture, pressure.read.attach(0));
-  gl.uniform1f(clearProgram.uniforms.value, config.PRESSURE);
+  gl.uniform1f(clearProgram.uniforms.value, config.pressure);
   blit(pressure.write);
   pressure.swap();
 
@@ -1359,7 +1358,7 @@ function step(dt) {
     velocity.texelSizeY
   );
   gl.uniform1i(pressureProgram.uniforms.uDivergence, divergence.attach(0));
-  for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
+  for (let i = 0; i < config.pressureIterations; i++) {
     gl.uniform1i(pressureProgram.uniforms.uPressure, pressure.read.attach(1));
     blit(pressure.write);
     pressure.swap();
@@ -1515,6 +1514,9 @@ function applyBloom(source, destination) {
 
   for (let i = bloomFramebuffers.length - 2; i >= 0; i--) {
     let baseTex = bloomFramebuffers[i];
+
+    // console.log(bloomBlurProgram.uniforms.texelSize);
+
     gl.uniform2f(
       bloomBlurProgram.uniforms.texelSize,
       last.texelSizeX,
@@ -1527,7 +1529,7 @@ function applyBloom(source, destination) {
   }
 
   gl.disable(gl.BLEND);
-  bloomFinalProgram.bind();
+  // bloomFinalProgram.bind();
   gl.uniform2f(
     bloomFinalProgram.uniforms.texelSize,
     last.texelSizeX,

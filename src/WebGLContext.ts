@@ -1,7 +1,6 @@
 import FluidSimulation from "./FluidSimulation.js";
 import { FramebufferObject } from "./FramebufferObject.js";
 import Target from "./Target.js";
-import config from "./utils/config.js";
 
 export default class WebGLContext {
   fluidSimulation: FluidSimulation;
@@ -29,8 +28,8 @@ export default class WebGLContext {
   sunraysTemp: any; // TODO;
 
   constructor() {
-    this.fluidSimulation = new FluidSimulation();
-    this.canvas = this.fluidSimulation.canvas.canvas;
+    this.fluidSimulation = new FluidSimulation({});
+    this.canvas = this.fluidSimulation.canvasClass.canvas;
 
     this.ext = {
       formatRGBA: null,
@@ -390,8 +389,8 @@ export default class WebGLContext {
   }
 
   initFramebuffers() {
-    let simRes = this.getResolution(config.SIM_RESOLUTION);
-    let dyeRes = this.getResolution(config.DYE_RESOLUTION);
+    let simRes = this.getResolution(this.fluidSimulation.config.simResolution);
+    let dyeRes = this.getResolution(this.fluidSimulation.config.dyeResolution);
 
     const texType = this.ext.halfFloatTexType;
     const rgba = this.ext.formatRGBA!;
@@ -473,7 +472,7 @@ export default class WebGLContext {
   }
 
   initBloomFramebuffers() {
-    let res = this.getResolution(config.BLOOM_RESOLUTION);
+    let res = this.getResolution(this.fluidSimulation.config.BLOOM_RESOLUTION);
     const texType = this.ext.halfFloatTexType;
     const rgba = this.ext.formatRGBA!;
     const filtering = this.ext.supportLinearFiltering
@@ -489,7 +488,7 @@ export default class WebGLContext {
       filtering
     );
 
-    for (let i = 0; i < config.BLOOM_ITERATIONS; i++) {
+    for (let i = 0; i < this.fluidSimulation.config.BLOOM_ITERATIONS; i++) {
       let width = res.width >> (i + 1);
       let height = res.height >> (i + 1);
       if (width < 2 || height < 2) break;
@@ -507,7 +506,9 @@ export default class WebGLContext {
   }
 
   initSunraysFramebuffers() {
-    let res = this.getResolution(config.SUNRAYS_RESOLUTION);
+    let res = this.getResolution(
+      this.fluidSimulation.config.SUNRAYS_RESOLUTION
+    );
 
     const texType = this.ext.halfFloatTexType;
     const r = this.ext.formatR!;
@@ -543,6 +544,4 @@ export default class WebGLContext {
       return { width: max, height: min };
     else return { width: min, height: max };
   }
-
-  update() {}
 }

@@ -7,11 +7,15 @@ export default class Canvas extends EventEmitter {
   height: number;
   constructor(canvas: HTMLCanvasElement) {
     super();
+    console.log(canvas);
 
     this.canvas = canvas;
     this.resizeCanvas();
     this.canvas.addEventListener("mousemove", (e) => {
       this.trigger("mousemove", [e]);
+    });
+    this.canvas.addEventListener("mousedown", (e) => {
+      this.trigger("mousedown", [e]);
     });
 
     this.canvas.addEventListener("mouseup", (e) => {

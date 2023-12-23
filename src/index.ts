@@ -1,3 +1,6 @@
 import FluidSimulation from "./FluidSimulation.js";
 
-new FluidSimulation(document.getElementsByTagName("canvas")[0]);
+new FluidSimulation({
+  canvas: document.getElementsByTagName("canvas")[0],
+  config: { transparent: true },
+});
