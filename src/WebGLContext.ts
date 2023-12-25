@@ -1,10 +1,27 @@
-import FluidSimulation from "./FluidSimulation.js";
 import { FramebufferObject } from "./FramebufferObject.js";
 import Target from "./Target.js";
+import EventEmitter from "./utils/EventEmitter.js";
 
-export default class WebGLContext {
-  fluidSimulation: FluidSimulation;
+interface Props {
   canvas: HTMLCanvasElement;
+  config: {
+    simResolution: number;
+    dyeResolution: number;
+    bloomIterations: number;
+    sunraysResolution: number;
+    bloomResolution: number;
+  };
+}
+
+export default class WebGLContext extends EventEmitter {
+  canvas: HTMLCanvasElement;
+  config: {
+    simResolution: number;
+    dyeResolution: number;
+    bloomIterations: number;
+    sunraysResolution: number;
+    bloomResolution: number;
+  };
   gl: WebGL2RenderingContext;
   ext: {
     formatRGBA: any;
@@ -27,9 +44,9 @@ export default class WebGLContext {
   sunrays: any; // TODO;
   sunraysTemp: any; // TODO;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.fluidSimulation = new FluidSimulation({});
-    this.canvas = canvas;
+  constructor(props: Props) {
+    super();
+    Object.assign(this, props);
 
     this.ext = {
       formatRGBA: null,
@@ -266,11 +283,8 @@ export default class WebGLContext {
     param: number
   ): FramebufferObject {
     const newFBO = this.createFBO(w, h, internalFormat, format, type, param);
-    this.fluidSimulation.copyProgram.bind();
-    this.gl.uniform1i(
-      this.fluidSimulation.copyProgram.uniforms.uTexture,
-      target.attach(0)
-    );
+
+    this.trigger("onResizeFBO", [target]);
     this.blit(newFBO);
     return newFBO;
   }
@@ -390,8 +404,8 @@ export default class WebGLContext {
   }
 
   initFramebuffers() {
-    let simRes = this.getResolution(this.fluidSimulation.config.simResolution);
-    let dyeRes = this.getResolution(this.fluidSimulation.config.dyeResolution);
+    let simRes = this.getResolution(this.config.simResolution);
+    let dyeRes = this.getResolution(this.config.dyeResolution);
 
     const texType = this.ext.halfFloatTexType;
     const rgba = this.ext.formatRGBA!;
@@ -473,7 +487,7 @@ export default class WebGLContext {
   }
 
   initBloomFramebuffers() {
-    let res = this.getResolution(this.fluidSimulation.config.bloomResolution);
+    let res = this.getResolution(this.config.bloomResolution);
     const texType = this.ext.halfFloatTexType;
     const rgba = this.ext.formatRGBA!;
     const filtering = this.ext.supportLinearFiltering
@@ -489,7 +503,7 @@ export default class WebGLContext {
       filtering
     );
 
-    for (let i = 0; i < this.fluidSimulation.config.bloomIterations; i++) {
+    for (let i = 0; i < this.config.bloomIterations; i++) {
       let width = res.width >> (i + 1);
       let height = res.height >> (i + 1);
       if (width < 2 || height < 2) break;
@@ -507,7 +521,7 @@ export default class WebGLContext {
   }
 
   initSunraysFramebuffers() {
-    let res = this.getResolution(this.fluidSimulation.config.sunraysResolution);
+    let res = this.getResolution(this.config.sunraysResolution);
 
     const texType = this.ext.halfFloatTexType;
     const r = this.ext.formatR!;

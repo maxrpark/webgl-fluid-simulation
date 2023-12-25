@@ -1,10 +1,8 @@
-import FluidSimulation from "../FluidSimulation.js";
 import WebGLContext from "../WebGLContext.js";
 import { shaderType } from "../ts/global.js";
 
 export default class ShaderCompiler {
   shader: any;
-  fluidSimulation: FluidSimulation;
   webGLContext: WebGLContext;
   gl: WebGL2RenderingContext;
 

@@ -1,5 +1,3 @@
-import FluidSimulation from "./FluidSimulation.js";
-
 interface Props {
   gl: WebGL2RenderingContext;
   texture: WebGLTexture;
@@ -18,8 +16,6 @@ export class FramebufferObject {
   height: number;
   texelSizeX: number;
   texelSizeY: number;
-
-  fluidSimulation: FluidSimulation;
 
   constructor(props: Props) {
     Object.assign(this, props);

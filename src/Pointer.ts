@@ -1,4 +1,3 @@
-import FluidSimulation from "./FluidSimulation.js";
 import { scaleByPixelRatio } from "./utils/helperFunc.js";
 
 export default class Pointer {
@@ -12,7 +11,6 @@ export default class Pointer {
   down: boolean;
   moved: boolean;
   color: { r: number; g: number; b: number };
-  fluidSimulation: FluidSimulation;
   canvas: HTMLCanvasElement;
   constructor(canvas: HTMLCanvasElement) {
     this.id = -1;

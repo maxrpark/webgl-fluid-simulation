@@ -21,14 +21,17 @@ export default class Canvas extends EventEmitter {
     } else {
       if (!className && !canvasContainer) {
         this.canvas.style.position = "fixed";
-        this.canvas.style.inset = "0 0 0 0";
+        this.canvas.style.top = "0";
+        this.canvas.style.right = "0";
+        this.canvas.style.bottom = "0";
+        this.canvas.style.left = "0";
       }
       document.body.appendChild(this.canvas);
     }
 
     if (!className) {
       this.canvas.style.width = "100%";
-      this.canvas.style.height = "100%";
+      this.canvas.style.height = "100vh";
     } else {
       this.canvas.classList.add(className);
     }

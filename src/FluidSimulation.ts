@@ -32,12 +32,7 @@ import {
 import WebGLContext from "./WebGLContext.js";
 import Canvas from "./Canvas.js";
 import Pointer from "./Pointer.js";
-
-declare global {
-  interface Window {
-    fluidSimulation: FluidSimulation;
-  }
-}
+import { FramebufferObject } from "./FramebufferObject.js";
 
 interface configInt {
   simResolution: number;
@@ -106,8 +101,6 @@ export interface FluidSimulationInt {
   canvas?: HTMLCanvasElement | undefined;
 }
 
-let instance: FluidSimulation | null = null;
-
 export default class FluidSimulation {
   canvas?: HTMLCanvasElement;
   uuid: string;
@@ -175,12 +168,6 @@ export default class FluidSimulation {
     this.uuid = uuid();
     let configProps = props.config as configInt;
     this.config = { ...this.config, ...configProps };
-    if (instance) {
-      return instance;
-    }
-    instance = this;
-
-    console.log(instance);
 
     this.canvasClass = new Canvas(
       this.config.className,
@@ -201,8 +188,21 @@ export default class FluidSimulation {
     this.time.on("tick", () => this.update());
 
     this.pointers.push(new Pointer(this.canvasClass.canvas));
-    this.webGLContext = new WebGLContext(this.canvasClass.canvas);
+    this.webGLContext = new WebGLContext({
+      canvas: this.canvasClass.canvas,
+      config: {
+        simResolution: this.config.simResolution,
+        dyeResolution: this.config.dyeResolution,
+        bloomIterations: this.config.bloomIterations,
+        sunraysResolution: this.config.sunraysResolution,
+        bloomResolution: this.config.bloomResolution,
+      },
+    });
     this.gl = this.webGLContext.gl;
+
+    this.webGLContext.on("onResizeFBO", (target: FramebufferObject) =>
+      this.onResizeFBO(target)
+    );
 
     if (isMobile()) {
       this.config.dyeResolution = 512;
@@ -755,6 +755,10 @@ export default class FluidSimulation {
     this.render(null);
   }
 
+  onResizeFBO(target: FramebufferObject) {
+    this.copyProgram.bind();
+    this.gl.uniform1i(this.copyProgram.uniforms.uTexture, target.attach(0));
+  }
   //EVENTS
   onResize() {
     this.webGLContext.initFramebuffers();
@@ -762,7 +766,6 @@ export default class FluidSimulation {
   mouseMove(e: MouseEvent) {
     let pointer = this.pointers[0];
 
-    // if (!pointer.down) return;
     if (!pointer.down && this.config.onlyHover == false) return;
 
     pointer.updatePointerMoveData(e.offsetX, e.offsetY);
@@ -782,6 +785,7 @@ export default class FluidSimulation {
   touchStart(e: any) {
     e.preventDefault();
     const touches = e.targetTouches;
+
     while (touches.length >= this.pointers.length)
       this.pointers.push(new Pointer(this.canvasClass.canvas));
     for (let i = 0; i < touches.length; i++) {
@@ -797,6 +801,7 @@ export default class FluidSimulation {
   touchMove(e: any) {
     e.preventDefault();
     const touches = e.targetTouches;
+
     for (let i = 0; i < touches.length; i++) {
       let pointer = this.pointers[i + 1];
 

@@ -1,5 +1,4 @@
 import { hashCode } from "../utils/helperFunc.js";
-import FluidSimulation from "../FluidSimulation.js";
 import ShaderCompiler from "./ShaderCompiler.js";
 import CreateProgram from "./CreateProgram.js";
 import { shaderType } from "../ts/global.js";

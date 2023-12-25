@@ -1,4 +1,3 @@
-import FluidSimulation from "./FluidSimulation.js";
 import WebGLContext from "./WebGLContext.js";
 import CreateProgram from "./shaders/CreateProgram.js";
 
@@ -8,7 +7,6 @@ interface Props {
   webGLContext: WebGLContext;
 }
 export default class Program {
-  fluidSimulation: FluidSimulation;
   webGLContext: WebGLContext;
   gl: WebGL2RenderingContext;
   vertexShader: string;
