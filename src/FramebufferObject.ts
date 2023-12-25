@@ -1,6 +1,7 @@
 import FluidSimulation from "./FluidSimulation.js";
 
 interface Props {
+  gl: WebGL2RenderingContext;
   texture: WebGLTexture;
   framebuffer: WebGLFramebuffer;
   width: number;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export class FramebufferObject {
+  gl: WebGL2RenderingContext;
   texture: WebGLTexture;
   framebuffer: WebGLFramebuffer;
   width: number;
@@ -21,14 +23,11 @@ export class FramebufferObject {
 
   constructor(props: Props) {
     Object.assign(this, props);
-    this.fluidSimulation = new FluidSimulation({});
   }
 
   attach(textureUnit: number) {
-    const gl = this.fluidSimulation.webGLContext.gl!;
-
-    gl.activeTexture(gl.TEXTURE0 + textureUnit);
-    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    this.gl.activeTexture(this.gl.TEXTURE0 + textureUnit);
+    this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
     return textureUnit;
   }
 }

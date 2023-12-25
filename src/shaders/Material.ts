@@ -3,6 +3,7 @@ import FluidSimulation from "../FluidSimulation.js";
 import ShaderCompiler from "./ShaderCompiler.js";
 import CreateProgram from "./CreateProgram.js";
 import { shaderType } from "../ts/global.js";
+import WebGLContext from "../WebGLContext.js";
 const fragmentShader = `
     precision highp float;
     precision highp sampler2D;
@@ -55,7 +56,7 @@ const fragmentShader = `
     #endif
     #endif
 
-    #ifdef BLOOM
+    #ifdef bloom
         float noise = texture2D(uDithering, vUv * ditherScale).r;
         noise = noise * 2.0 - 1.0;
         bloom += noise / 255.0;
@@ -68,9 +69,26 @@ const fragmentShader = `
     }
 `;
 
+interface Props {
+  vertexShader: string;
+  webGLContext: WebGLContext;
+  config: {
+    shading: boolean;
+    bloom: boolean;
+    sunrays: boolean;
+  };
+}
+
 export default class Material {
-  fluidSimulation: FluidSimulation;
+  webGLContext: WebGLContext;
   gl: WebGL2RenderingContext;
+
+  config: {
+    shading: boolean;
+    bloom: boolean;
+    sunrays: boolean;
+  };
+
   program: any;
   vertexShader: string;
   fragmentShaderSource: string;
@@ -86,14 +104,13 @@ export default class Material {
   };
 
   ditheringTexture: any;
-  constructor(vertexShader: string) {
-    this.fluidSimulation = new FluidSimulation({});
-    this.gl = this.fluidSimulation.webGLContext.gl;
+  constructor(props: Props) {
+    Object.assign(this, props);
+    this.gl = this.webGLContext.gl;
     this.ditheringTexture = this.createTextureAsync(
       "package/assets/LDR_LLL1_0.png"
     );
 
-    this.vertexShader = vertexShader;
     this.fragmentShaderSource = fragmentShader;
     this.programs = [];
     this.activeProgram = null;
@@ -117,13 +134,14 @@ export default class Material {
 
     if (this.program == null) {
       let fragmentShader = new ShaderCompiler(
+        this.webGLContext,
         shaderType.FRAGMENT,
         this.fragmentShaderSource,
         keywords
       );
 
       this.program = new CreateProgram({
-        gl: this.gl,
+        webGLContext: this.webGLContext,
         vertexShader: this.vertexShader,
         fragmentShader: fragmentShader.shader,
       });
@@ -210,9 +228,9 @@ export default class Material {
 
   updateKeywords() {
     let displayKeywords = [];
-    if (this.fluidSimulation.config.shading) displayKeywords.push("shading");
-    if (this.fluidSimulation.config.BLOOM) displayKeywords.push("BLOOM");
-    if (this.fluidSimulation.config.SUNRAYS) displayKeywords.push("SUNRAYS");
+    if (this.config.shading) displayKeywords.push("shading");
+    if (this.config.bloom) displayKeywords.push("BLOOM");
+    if (this.config.sunrays) displayKeywords.push("SUNRAYS");
 
     this.createFragmentShader(displayKeywords);
   }

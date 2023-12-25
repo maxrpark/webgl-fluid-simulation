@@ -1,22 +1,25 @@
+import WebGLContext from "../WebGLContext.js";
 import BaseVertexShader from "./vertex/baseVertexShader.js";
 
 interface Props {
-  gl: WebGL2RenderingContext;
+  webGLContext: WebGLContext;
   vertexShader?: string;
   fragmentShader: string;
 }
 export default class CreateProgram {
   instance: WebGLShader;
+  webGLContext: WebGLContext;
   gl: WebGL2RenderingContext;
   uniforms: any;
   vertexShader: string;
 
-  constructor({ gl, vertexShader, fragmentShader }: Props) {
-    this.gl = gl;
+  constructor({ webGLContext, vertexShader, fragmentShader }: Props) {
+    this.webGLContext = webGLContext;
+    this.gl = this.webGLContext.gl;
 
     this.vertexShader = vertexShader
       ? vertexShader
-      : new BaseVertexShader().shader;
+      : new BaseVertexShader(this.webGLContext).shader;
 
     this.createProgram(this.vertexShader, fragmentShader);
     this.getUniforms(this.instance);

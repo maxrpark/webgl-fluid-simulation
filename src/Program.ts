@@ -1,14 +1,18 @@
 import FluidSimulation from "./FluidSimulation.js";
+import WebGLContext from "./WebGLContext.js";
 import CreateProgram from "./shaders/CreateProgram.js";
 
 interface Props {
   vertexShader?: string;
   fragmentShader: string;
+  webGLContext: WebGLContext;
 }
 export default class Program {
   fluidSimulation: FluidSimulation;
+  webGLContext: WebGLContext;
   gl: WebGL2RenderingContext;
-  vertexShader: any;
+  vertexShader: string;
+  fragmentShader: string;
 
   uniforms: {
     texelSize: any;
@@ -41,9 +45,11 @@ export default class Program {
     dissipation: any;
   };
   program: WebGLProgram | null;
-  constructor({ fragmentShader, vertexShader }: Props) {
-    this.fluidSimulation = new FluidSimulation({});
-    this.gl = this.fluidSimulation.webGLContext.gl;
+  constructor(props: Props) {
+    Object.assign(this, props);
+
+    this.gl = this.webGLContext.gl;
+
     this.uniforms = {
       texelSize: null,
       uTexture: null,
@@ -76,9 +82,9 @@ export default class Program {
     };
 
     const newProgram = new CreateProgram({
-      gl: this.gl,
-      vertexShader: vertexShader,
-      fragmentShader: fragmentShader,
+      webGLContext: this.webGLContext,
+      vertexShader: this.vertexShader,
+      fragmentShader: this.fragmentShader,
     });
 
     this.program = newProgram.instance;

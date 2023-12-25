@@ -14,7 +14,7 @@ export default class Pointer {
   color: { r: number; g: number; b: number };
   fluidSimulation: FluidSimulation;
   canvas: HTMLCanvasElement;
-  constructor() {
+  constructor(canvas: HTMLCanvasElement) {
     this.id = -1;
     this.texcoordX = 0;
     this.texcoordY = 0;
@@ -27,8 +27,7 @@ export default class Pointer {
     this.color = { r: 30, g: 0, b: 300 };
     // this.color = [30, 0, 300];
 
-    this.fluidSimulation = new FluidSimulation({});
-    this.canvas = this.fluidSimulation.canvasClass.canvas;
+    this.canvas = canvas;
   }
   updatePointerMoveData(x: number, y: number) {
     let posX = scaleByPixelRatio(x);
@@ -43,7 +42,7 @@ export default class Pointer {
   }
 
   setPointerDown() {
-    this.down = true;
+    this.down = false;
   }
 
   onTouchStart(id: number, x: number, y: number) {

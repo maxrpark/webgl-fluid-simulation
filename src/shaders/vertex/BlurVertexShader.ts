@@ -1,9 +1,11 @@
 import ShaderCompiler from "../ShaderCompiler.js";
 import { shaderType } from "../../ts/global.js";
+import WebGLContext from "../../WebGLContext.js";
 
 export default class BlurVertexShader extends ShaderCompiler {
-  constructor() {
+  constructor(webGLContext: WebGLContext) {
     super(
+      webGLContext,
       shaderType.VERTEX,
       `
     precision highp float;

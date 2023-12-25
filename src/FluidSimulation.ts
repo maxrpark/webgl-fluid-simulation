@@ -23,7 +23,12 @@ import {
   ColorShader,
   ClearShader,
 } from "./shaders/fragment/index.js";
-import { generateColor, normalizeColor, wrap } from "./utils/helperFunc.js";
+import {
+  generateColor,
+  normalizeColor,
+  uuid,
+  wrap,
+} from "./utils/helperFunc.js";
 import WebGLContext from "./WebGLContext.js";
 import Canvas from "./Canvas.js";
 import Pointer from "./Pointer.js";
@@ -50,16 +55,18 @@ interface configInt {
   paused: boolean;
   blackColor: { r: number; g: number; b: number };
   transparent: boolean;
-  BLOOM: boolean;
-  BLOOM_ITERATIONS: number;
-  BLOOM_RESOLUTION: number;
-  BLOOM_INTENSITY: number;
-  BLOOM_THRESHOLD: number;
-  BLOOM_SOFT_KNEE: number;
-  SUNRAYS: boolean;
-  SUNRAYS_RESOLUTION: number;
-  SUNRAYS_WEIGHT: number;
-  ONLY_HOVER: boolean;
+  bloom: boolean;
+  bloomIterations: number;
+  bloomResolution: number;
+  bloomIntensity: number;
+  bloomThreshold: number;
+  bloomSoftKnee: number;
+  sunrays: boolean;
+  sunraysResolution: number;
+  sunraysWeigth: number;
+  onlyHover: boolean;
+  canvasContainer: string;
+  className: string;
 }
 
 interface Props {
@@ -80,16 +87,18 @@ interface Props {
     paused?: boolean;
     blackColor?: { r?: number; g?: number; b?: number };
     transparent?: boolean;
-    BLOOM?: boolean;
-    BLOOM_ITERATIONS?: number;
-    BLOOM_RESOLUTION?: number;
-    BLOOM_INTENSITY?: number;
-    BLOOM_THRESHOLD?: number;
-    BLOOM_SOFT_KNEE?: number;
-    SUNRAYS?: boolean;
-    SUNRAYS_RESOLUTION?: number;
-    SUNRAYS_WEIGHT?: number;
-    ONLY_HOVER?: boolean;
+    bloom?: boolean;
+    bloomIterations?: number;
+    bloomResolution?: number;
+    bloomIntensity?: number;
+    bloomThreshold?: number;
+    bloomSoftKnee?: number;
+    sunrays?: boolean;
+    sunraysResolution?: number;
+    sunraysWeigth?: number;
+    onlyHover?: boolean;
+    className?: string;
+    canvasContainer?: any;
   };
 }
 
@@ -101,7 +110,7 @@ let instance: FluidSimulation | null = null;
 
 export default class FluidSimulation {
   canvas?: HTMLCanvasElement;
-
+  uuid: string;
   canvasClass: Canvas;
   webGLContext: WebGLContext;
   gl: WebGL2RenderingContext;
@@ -148,30 +157,35 @@ export default class FluidSimulation {
     paused: false,
     blackColor: { r: 0, g: 0, b: 0 },
     transparent: false,
-    BLOOM: true,
-    BLOOM_ITERATIONS: 8,
-    BLOOM_RESOLUTION: 256,
-    BLOOM_INTENSITY: 0.8,
-    BLOOM_THRESHOLD: 0.6,
-    BLOOM_SOFT_KNEE: 0.7,
-    SUNRAYS: false,
-    SUNRAYS_RESOLUTION: 196,
-    SUNRAYS_WEIGHT: 1.0,
-    ONLY_HOVER: true,
+    bloom: false,
+    bloomIterations: 8,
+    bloomResolution: 256,
+    bloomIntensity: 0.8,
+    bloomThreshold: 0.6,
+    bloomSoftKnee: 0.7,
+    sunrays: false,
+    sunraysResolution: 196,
+    sunraysWeigth: 1.0,
+    onlyHover: true,
+    className: "",
+    canvasContainer: "",
   };
 
   constructor(props: Props) {
-    this.canvas = props.canvas;
+    this.uuid = uuid();
     let configProps = props.config as configInt;
     this.config = { ...this.config, ...configProps };
-
     if (instance) {
       return instance;
     }
-
     instance = this;
 
-    this.canvasClass = new Canvas(this.canvas!)!;
+    console.log(instance);
+
+    this.canvasClass = new Canvas(
+      this.config.className,
+      this.config.canvasContainer
+    );
     this.canvasClass.on("mousedown", (e: MouseEvent) => this.mouseDown(e));
     this.canvasClass.on("mousemove", (e: MouseEvent) => this.mouseMove(e));
     this.canvasClass.on("mouseup", () => this.mouseUp());
@@ -186,8 +200,8 @@ export default class FluidSimulation {
     this.time = new Time();
     this.time.on("tick", () => this.update());
 
-    this.pointers.push(new Pointer());
-    this.webGLContext = new WebGLContext();
+    this.pointers.push(new Pointer(this.canvasClass.canvas));
+    this.webGLContext = new WebGLContext(this.canvasClass.canvas);
     this.gl = this.webGLContext.gl;
 
     if (isMobile()) {
@@ -197,8 +211,8 @@ export default class FluidSimulation {
     if (!this.webGLContext.ext.supportLinearFiltering) {
       this.config.dyeResolution = 512;
       this.config.shading = false;
-      this.config.BLOOM = false;
-      this.config.SUNRAYS = false;
+      this.config.bloom = false;
+      this.config.sunrays = false;
     }
 
     function isMobile() {
@@ -206,64 +220,89 @@ export default class FluidSimulation {
     }
 
     this.blurProgram = new Program({
-      vertexShader: new BlurVertexShader().shader,
-      fragmentShader: new BlurShader().shader,
+      webGLContext: this.webGLContext,
+      vertexShader: new BlurVertexShader(this.webGLContext).shader,
+      fragmentShader: new BlurShader(this.webGLContext).shader,
     });
     this.copyProgram = new Program({
-      fragmentShader: new CopyShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new CopyShader(this.webGLContext).shader,
     });
     this.clearProgram = new Program({
-      fragmentShader: new ClearShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new ClearShader(this.webGLContext).shader,
     });
     this.colorProgram = new Program({
-      fragmentShader: new ColorShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new ColorShader(this.webGLContext).shader,
     });
 
     this.bloomPrefilterProgram = new Program({
-      fragmentShader: new BloomPrefilterShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new BloomPrefilterShader(this.webGLContext).shader,
     });
     this.bloomBlurProgram = new Program({
-      fragmentShader: new BloomBlurShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new BloomBlurShader(this.webGLContext).shader,
     });
     this.bloomFinalProgram = new Program({
-      fragmentShader: new BloomFinalShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new BloomFinalShader(this.webGLContext).shader,
     });
     this.sunraysMaskProgram = new Program({
-      fragmentShader: new SunRaysMaskShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new SunRaysMaskShader(this.webGLContext).shader,
     });
     this.sunraysProgram = new Program({
-      fragmentShader: new SunraysShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new SunraysShader(this.webGLContext).shader,
     });
     this.splatProgram = new Program({
-      fragmentShader: new SplatShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new SplatShader(this.webGLContext).shader,
     });
     this.advectionProgram = new Program({
-      fragmentShader: new AdvectionShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new AdvectionShader(this.webGLContext).shader,
     });
 
     this.divergenceProgram = new Program({
-      fragmentShader: new DivergenceShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new DivergenceShader(this.webGLContext).shader,
     });
     this.curlProgram = new Program({
-      fragmentShader: new CurlShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new CurlShader(this.webGLContext).shader,
     });
     this.vorticityProgram = new Program({
-      fragmentShader: new VorticityShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new VorticityShader(this.webGLContext).shader,
     });
     this.pressureProgram = new Program({
-      fragmentShader: new PressureShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new PressureShader(this.webGLContext).shader,
     });
     this.gradienSubtractProgram = new Program({
-      fragmentShader: new GradientSubtractShader().shader,
+      webGLContext: this.webGLContext,
+      fragmentShader: new GradientSubtractShader(this.webGLContext).shader,
     });
 
-    this.displayMaterial = new Material(new BaseVertexShader().shader); // EXTEND PROGRAM
+    this.displayMaterial = new Material({
+      webGLContext: this.webGLContext,
+      vertexShader: new BaseVertexShader(this.webGLContext).shader,
+      config: {
+        shading: this.config.shading,
+        bloom: this.config.bloom,
+        sunrays: this.config.shading,
+      },
+    }); // EXTEND PROGRAM
 
     this.webGLContext.initFramebuffers();
 
     this.multipleSplats(Math.random() * 20 + 5);
     this.update();
   }
+
   multipleSplats(amount: number) {
     for (let i = 0; i < amount; i++) {
       const color = generateColor();
@@ -373,9 +412,8 @@ export default class FluidSimulation {
     this.gl.disable(this.gl.BLEND);
     this.bloomPrefilterProgram.bind();
 
-    let knee =
-      this.config.BLOOM_THRESHOLD * this.config.BLOOM_SOFT_KNEE + 0.0001;
-    let curve0 = this.config.BLOOM_THRESHOLD - knee;
+    let knee = this.config.bloomThreshold * this.config.bloomSoftKnee + 0.0001;
+    let curve0 = this.config.bloomThreshold - knee;
     let curve1 = knee * 2;
     let curve2 = 0.25 / knee;
 
@@ -387,7 +425,7 @@ export default class FluidSimulation {
     );
     this.gl.uniform1f(
       this.bloomPrefilterProgram.uniforms.threshold,
-      this.config.BLOOM_THRESHOLD
+      this.config.bloomThreshold
     );
     this.gl.uniform1i(
       this.bloomPrefilterProgram.uniforms.uTexture,
@@ -443,7 +481,7 @@ export default class FluidSimulation {
     this.gl.uniform1i(this.bloomFinalProgram.uniforms.uTexture, last.attach(0));
     this.gl.uniform1f(
       this.bloomFinalProgram.uniforms.intensity,
-      this.config.BLOOM_INTENSITY
+      this.config.bloomIntensity
     );
 
     this.webGLContext.blit(destination);
@@ -461,7 +499,7 @@ export default class FluidSimulation {
     this.sunraysProgram.bind();
     this.gl.uniform1f(
       this.sunraysProgram.uniforms.weight,
-      this.config.SUNRAYS_WEIGHT
+      this.config.sunraysWeigth
     );
     this.gl.uniform1i(this.sunraysProgram.uniforms.uTexture, mask.attach(0));
     this.webGLContext.blit(destination);
@@ -632,7 +670,7 @@ export default class FluidSimulation {
       this.displayMaterial.uniforms.uTexture,
       this.webGLContext.dye.read.attach(0)
     );
-    if (this.config.BLOOM) {
+    if (this.config.bloom) {
       this.gl.uniform1i(
         this.displayMaterial.uniforms.uBloom,
         this.webGLContext.bloom.attach(1)
@@ -653,7 +691,7 @@ export default class FluidSimulation {
         scale.y
       );
     }
-    if (this.config.SUNRAYS)
+    if (this.config.sunrays)
       this.gl.uniform1i(
         this.displayMaterial.uniforms.uSunrays,
         this.webGLContext.sunrays.attach(3)
@@ -679,9 +717,9 @@ export default class FluidSimulation {
   }
 
   render(target: any) {
-    if (this.config.BLOOM)
+    if (this.config.bloom)
       this.applyBloom(this.webGLContext.dye.read, this.webGLContext.bloom);
-    if (this.config.SUNRAYS) {
+    if (this.config.sunrays) {
       this.applySunrays(
         this.webGLContext.dye.read,
         this.webGLContext.dye.write,
@@ -724,7 +762,8 @@ export default class FluidSimulation {
   mouseMove(e: MouseEvent) {
     let pointer = this.pointers[0];
 
-    if (!pointer.down && this.config.ONLY_HOVER == false) return;
+    // if (!pointer.down) return;
+    if (!pointer.down && this.config.onlyHover == false) return;
 
     pointer.updatePointerMoveData(e.offsetX, e.offsetY);
   }
@@ -735,7 +774,7 @@ export default class FluidSimulation {
   mouseDown(e: MouseEvent) {
     let pointer = this.pointers.find((p) => p.id == -1);
 
-    if (pointer == null) pointer = new Pointer();
+    if (pointer == null) pointer = new Pointer(this.canvasClass.canvas);
     pointer.onTouchStart(-1, e.offsetX, e.offsetY);
     pointer.color = generateColor();
   }
@@ -744,7 +783,7 @@ export default class FluidSimulation {
     e.preventDefault();
     const touches = e.targetTouches;
     while (touches.length >= this.pointers.length)
-      this.pointers.push(new Pointer());
+      this.pointers.push(new Pointer(this.canvasClass.canvas));
     for (let i = 0; i < touches.length; i++) {
       this.pointers[i + 1].onTouchStart(
         touches[i].identifier,

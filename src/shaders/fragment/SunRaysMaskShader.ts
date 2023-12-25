@@ -1,10 +1,12 @@
 import ShaderCompiler from "../ShaderCompiler.js";
 import { shaderType } from "../../ts/global.js";
 import Program from "../../Program.js";
+import WebGLContext from "../../WebGLContext.js";
 
 export default class SunRaysMaskShader extends ShaderCompiler {
-  constructor() {
+  constructor(webGLContext: WebGLContext) {
     super(
+      webGLContext,
       shaderType.FRAGMENT,
       `
     precision highp float;

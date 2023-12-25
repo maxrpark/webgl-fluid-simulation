@@ -27,9 +27,9 @@ export default class WebGLContext {
   sunrays: any; // TODO;
   sunraysTemp: any; // TODO;
 
-  constructor() {
+  constructor(canvas: HTMLCanvasElement) {
     this.fluidSimulation = new FluidSimulation({});
-    this.canvas = this.fluidSimulation.canvasClass.canvas;
+    this.canvas = canvas;
 
     this.ext = {
       formatRGBA: null,
@@ -246,6 +246,7 @@ export default class WebGLContext {
     const texelSizeY = 1.0 / height;
 
     return new FramebufferObject({
+      gl: this.gl,
       texture: texture!,
       framebuffer: framebuffer!,
       width,
@@ -472,7 +473,7 @@ export default class WebGLContext {
   }
 
   initBloomFramebuffers() {
-    let res = this.getResolution(this.fluidSimulation.config.BLOOM_RESOLUTION);
+    let res = this.getResolution(this.fluidSimulation.config.bloomResolution);
     const texType = this.ext.halfFloatTexType;
     const rgba = this.ext.formatRGBA!;
     const filtering = this.ext.supportLinearFiltering
@@ -488,7 +489,7 @@ export default class WebGLContext {
       filtering
     );
 
-    for (let i = 0; i < this.fluidSimulation.config.BLOOM_ITERATIONS; i++) {
+    for (let i = 0; i < this.fluidSimulation.config.bloomIterations; i++) {
       let width = res.width >> (i + 1);
       let height = res.height >> (i + 1);
       if (width < 2 || height < 2) break;
@@ -506,9 +507,7 @@ export default class WebGLContext {
   }
 
   initSunraysFramebuffers() {
-    let res = this.getResolution(
-      this.fluidSimulation.config.SUNRAYS_RESOLUTION
-    );
+    let res = this.getResolution(this.fluidSimulation.config.sunraysResolution);
 
     const texType = this.ext.halfFloatTexType;
     const r = this.ext.formatR!;

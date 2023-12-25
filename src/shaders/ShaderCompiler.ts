@@ -1,21 +1,24 @@
 import FluidSimulation from "../FluidSimulation.js";
+import WebGLContext from "../WebGLContext.js";
 import { shaderType } from "../ts/global.js";
 
 export default class ShaderCompiler {
   shader: any;
   fluidSimulation: FluidSimulation;
+  webGLContext: WebGLContext;
   gl: WebGL2RenderingContext;
 
   constructor(
+    webGLContext: WebGLContext,
     type: shaderType,
     sourceShader: string,
     keywords: string[] | null
   ) {
-    this.fluidSimulation = new FluidSimulation({});
-    this.gl = this.fluidSimulation.webGLContext.gl;
+    this.webGLContext = webGLContext;
+    this.gl = this.webGLContext.gl;
 
     let k = keywords?.length
-      ? this.fluidSimulation.webGLContext.ext.supportLinearFiltering
+      ? this.webGLContext.ext.supportLinearFiltering
         ? null
         : ["MANUAL_FILTERING"]
       : [];
