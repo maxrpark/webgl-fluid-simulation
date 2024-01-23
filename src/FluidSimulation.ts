@@ -24,8 +24,8 @@ import {
   ClearShader,
 } from "./shaders/fragment/index.js";
 import {
-  generateColor,
   normalizeColor,
+  setFluidColor,
   uuid,
   wrap,
 } from "./utils/helperFunc.js";
@@ -63,6 +63,7 @@ interface configInt {
   onlyHover: boolean;
   canvasContainer: string;
   className: string;
+  fluidColor?: string;
 }
 
 interface Props {
@@ -96,6 +97,7 @@ interface Props {
     onlyHover?: boolean;
     className?: string;
     canvasContainer?: any;
+    fluidColor?: string;
   };
 }
 
@@ -164,6 +166,7 @@ export default class FluidSimulation {
     onlyHover: true,
     className: "",
     canvasContainer: "",
+    fluidColor: "",
   };
 
   constructor(props: Props) {
@@ -309,7 +312,8 @@ export default class FluidSimulation {
 
   multipleSplats(amount: number) {
     for (let i = 0; i < amount; i++) {
-      const color = generateColor();
+      let color = setFluidColor(this.config.fluidColor!);
+
       color.r *= 10.0;
       color.g *= 10.0;
       color.b *= 10.0;
@@ -340,7 +344,7 @@ export default class FluidSimulation {
       this.colorUpdateTimer = wrap(this.colorUpdateTimer, 0, 1);
 
       this.pointers.forEach((p) => {
-        p.color = generateColor();
+        p.color = setFluidColor(this.config.fluidColor!);
       });
     }
   }
@@ -783,7 +787,7 @@ export default class FluidSimulation {
 
     if (pointer == null) pointer = new Pointer(this.canvasClass.canvas);
     pointer.onTouchStart(-1, e.offsetX, e.offsetY);
-    pointer.color = generateColor();
+    pointer.color = setFluidColor(this.config.fluidColor!);
   }
 
   touchStart(e: any) {
@@ -798,7 +802,7 @@ export default class FluidSimulation {
         touches[i].pageY
       );
 
-      this.pointers[i + 1].color = generateColor();
+      this.pointers[i + 1].color = setFluidColor(this.config.fluidColor!);
     }
   }
 

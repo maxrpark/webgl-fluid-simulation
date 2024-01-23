@@ -1,27 +1,18 @@
 import FluidSimulation from "./FluidSimulation.js";
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-
-// new FluidSimulation({
-//   // pass canvas or create new one
-//   config: { className: "my-canvas" },
-// });
 
 const canvas = document.createElement("canvas");
 canvas.setAttribute("id", "webgl-canvas");
 document.body.appendChild(canvas);
 
-let fluid = new FluidSimulation({
+new FluidSimulation({
   config: {
-    // isTexture: true,
-    // className: "my-canvas",
-    // canvasContainer: "container-canvas",
-    transparent: false,
-    backGroundColor: "#353535",
+    fluidColor: "#ff0000",
+    transparent: true,
+    curl: 0,
+    pressure: 0.1,
   },
 });
-
-// const texture = new THREE.CanvasTexture(fluid.texture);
 
 // texture.needsUpdate = true;
 const sizes = {
@@ -90,9 +81,6 @@ const tick = () => {
   renderer.render(scene, camera);
 
   window.requestAnimationFrame(tick);
-  // texture.needsUpdate = true;
-
-  // controls.update();
 
   meshes.forEach((el) => {
     el.rotation.x += 0.01;

@@ -15,7 +15,6 @@ export const generateColor = (): { r: number; g: number; b: number } => {
   c.b! *= 0.15;
 
   return c;
-  // return { r: 1, g: 1, b: 1, a: 1 };
 };
 
 export const HSVtoRGB = (
@@ -78,7 +77,9 @@ export const scaleByPixelRatio = (input: number) => {
 //   return output;
 // };
 
-export const normalizeColor = (color: string) => {
+export const normalizeColor = (
+  color: string
+): { r: number; g: number; b: number } => {
   let match;
 
   // Check if the input is in hex format
@@ -100,7 +101,7 @@ export const normalizeColor = (color: string) => {
   }
 
   // If the format is not recognized, return null or handle it as needed
-  return null;
+  return { r: 1, g: 0, b: 0 };
 };
 
 export const uuid = () => {
@@ -108,4 +109,15 @@ export const uuid = () => {
     const r = Math.floor(Math.random() * 16);
     return r.toString(16);
   });
+};
+
+export const setFluidColor = (
+  fluidColor: string
+): { r: number; g: number; b: number } => {
+  let color = generateColor();
+  if (fluidColor) {
+    color = normalizeColor(fluidColor);
+  }
+
+  return color;
 };
