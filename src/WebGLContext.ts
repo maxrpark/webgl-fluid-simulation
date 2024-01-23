@@ -76,6 +76,8 @@ export default class WebGLContext extends EventEmitter {
 
     const isWebGL2 = !!this.gl; // TODO
 
+    console.log(this.canvas);
+
     if (!isWebGL2)
       this.gl =
         (this.canvas.getContext("webgl", params) as WebGL2RenderingContext) ||

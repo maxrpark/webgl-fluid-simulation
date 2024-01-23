@@ -35,6 +35,7 @@ import Pointer from "./Pointer.js";
 import { FramebufferObject } from "./FramebufferObject.js";
 
 interface configInt {
+  isTexture: boolean;
   simResolution: number;
   dyeResolution: number;
   densityDissipation: number;
@@ -48,7 +49,7 @@ interface configInt {
   colorful: boolean;
   colorUpdateSpeed: number;
   paused: boolean;
-  blackColor: { r: number; g: number; b: number };
+  backGroundColor: string;
   transparent: boolean;
   bloom: boolean;
   bloomIterations: number;
@@ -67,6 +68,7 @@ interface configInt {
 interface Props {
   canvas?: HTMLCanvasElement;
   config?: {
+    isTexture?: boolean;
     simResolution?: number;
     dyeResolution?: number;
     densityDissipation?: number;
@@ -80,7 +82,7 @@ interface Props {
     colorful?: boolean;
     colorUpdateSpeed?: number;
     paused?: boolean;
-    blackColor?: { r?: number; g?: number; b?: number };
+    backGroundColor?: string;
     transparent?: boolean;
     bloom?: boolean;
     bloomIterations?: number;
@@ -109,7 +111,7 @@ export default class FluidSimulation {
   gl: WebGL2RenderingContext;
   displayMaterial: Material;
   time: Time;
-
+  texture: any;
   colorUpdateTimer: number;
 
   pointers: Pointer[] = [];
@@ -136,7 +138,7 @@ export default class FluidSimulation {
   config: configInt = {
     simResolution: 128,
     dyeResolution: 1024,
-
+    isTexture: false,
     densityDissipation: 1,
     velocityDissipation: 0.2,
     pressure: 0.8,
@@ -148,7 +150,7 @@ export default class FluidSimulation {
     colorful: true,
     colorUpdateSpeed: 10,
     paused: false,
-    blackColor: { r: 0, g: 0, b: 0 },
+    backGroundColor: "#000000",
     transparent: false,
     bloom: false,
     bloomIterations: 8,
@@ -171,7 +173,8 @@ export default class FluidSimulation {
 
     this.canvasClass = new Canvas(
       this.config.className,
-      this.config.canvasContainer
+      this.config.canvasContainer,
+      this.config.isTexture
     );
     this.canvasClass.on("mousedown", (e: MouseEvent) => this.mouseDown(e));
     this.canvasClass.on("mousemove", (e: MouseEvent) => this.mouseMove(e));
@@ -199,6 +202,7 @@ export default class FluidSimulation {
       },
     });
     this.gl = this.webGLContext.gl;
+    this.texture = this.canvasClass.canvas;
 
     this.webGLContext.on("onResizeFBO", (target: FramebufferObject) =>
       this.onResizeFBO(target)
@@ -743,7 +747,7 @@ export default class FluidSimulation {
     }
 
     if (!this.config.transparent)
-      this.drawColor(target, normalizeColor(this.config.blackColor));
+      this.drawColor(target, normalizeColor(this.config.backGroundColor));
 
     this.drawDisplay(target);
   }
@@ -783,7 +787,6 @@ export default class FluidSimulation {
   }
 
   touchStart(e: any) {
-    e.preventDefault();
     const touches = e.targetTouches;
 
     while (touches.length >= this.pointers.length)
@@ -794,12 +797,12 @@ export default class FluidSimulation {
         touches[i].pageX,
         touches[i].pageY
       );
+
       this.pointers[i + 1].color = generateColor();
     }
   }
 
   touchMove(e: any) {
-    e.preventDefault();
     const touches = e.targetTouches;
 
     for (let i = 0; i < touches.length; i++) {

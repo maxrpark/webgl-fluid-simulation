@@ -69,13 +69,38 @@ export const scaleByPixelRatio = (input: number) => {
   return Math.floor(input * pixelRatio);
 };
 
-export const normalizeColor = (input: { r: number; g: number; b: number }) => {
-  let output = {
-    r: input.r / 255,
-    g: input.g / 255,
-    b: input.b / 255,
-  };
-  return output;
+// export const normalizeColor = (input: { r: number; g: number; b: number }) => {
+//   let output = {
+//     r: input.r / 255,
+//     g: input.g / 255,
+//     b: input.b / 255,
+//   };
+//   return output;
+// };
+
+export const normalizeColor = (color: string) => {
+  let match;
+
+  // Check if the input is in hex format
+  if ((match = color.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i))) {
+    return {
+      r: parseInt(match[1], 16) / 255,
+      g: parseInt(match[2], 16) / 255,
+      b: parseInt(match[3], 16) / 255,
+    };
+  }
+
+  // Check if the input is in RGB format
+  if ((match = color.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/))) {
+    return {
+      r: parseInt(match[1], 10) / 255,
+      g: parseInt(match[2], 10) / 255,
+      b: parseInt(match[3], 10) / 255,
+    };
+  }
+
+  // If the format is not recognized, return null or handle it as needed
+  return null;
 };
 
 export const uuid = () => {

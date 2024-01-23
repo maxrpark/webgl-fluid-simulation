@@ -7,13 +7,11 @@ export default class Canvas extends EventEmitter {
   height: number;
 
   // canvasContainer: string;
-  constructor(className: string, canvasContainer: string) {
+  constructor(className: string, canvasContainer: string, isTexture: boolean) {
     super();
-    // this.canvasContainer = canvasContainer;
     this.canvas = document.createElement("canvas");
     if (canvasContainer) {
       const container = document.getElementById(canvasContainer);
-
       if (!container) {
         throw new Error("NO Element found");
       }
@@ -21,10 +19,9 @@ export default class Canvas extends EventEmitter {
     } else {
       if (!className && !canvasContainer) {
         this.canvas.style.position = "fixed";
-        this.canvas.style.top = "0";
-        this.canvas.style.right = "0";
-        this.canvas.style.bottom = "0";
-        this.canvas.style.left = "0";
+        this.canvas.style.top = "0px";
+        this.canvas.style.pointerEvents = "auto";
+        this.canvas.style.zIndex = "-1";
       }
       document.body.appendChild(this.canvas);
     }
@@ -35,38 +32,55 @@ export default class Canvas extends EventEmitter {
     } else {
       this.canvas.classList.add(className);
     }
+    if (isTexture) {
+      // this.canvas.style.visibility = "hidden";
+      const overlay = document.createElement("div");
+
+      overlay.style.position = "fixed";
+      overlay.style.top = "0px";
+      overlay.style.pointerEvents = "auto";
+      overlay.style.zIndex = "-9999";
+      overlay.style.width = "100%";
+      overlay.style.height = "100vh";
+      overlay.style.background = "white";
+
+      document.body.appendChild(overlay);
+      this.canvas.style.zIndex = "-10000";
+      this.canvas.style.position = "fixed";
+    }
 
     this.resizeCanvas();
-    this.canvas.addEventListener("mousemove", (e) => {
+    window.addEventListener("mousemove", (e) => {
       this.trigger("mousemove", [e]);
     });
-    this.canvas.addEventListener("mousedown", (e) => {
+    window.addEventListener("mousedown", (e) => {
       this.trigger("mousedown", [e]);
     });
 
-    this.canvas.addEventListener("mouseup", (e) => {
+    window.addEventListener("mouseup", (e) => {
       this.trigger("mouseup", [e]);
     });
 
-    this.canvas.addEventListener("touchstart", (e) => {
-      e.preventDefault();
+    window.addEventListener("touchstart", (e) => {
+      // e.preventDefault();
       this.trigger("touchstart", [e]);
     });
 
-    this.canvas.addEventListener(
+    window.addEventListener(
       "touchmove",
       (e) => {
-        e.preventDefault();
+        // e.preventDefault();
+
         this.trigger("touchmove", [e]);
       },
       false
     );
 
-    this.canvas.addEventListener("touchend", (e) => {
+    window.addEventListener("touchend", (e) => {
       this.trigger("touchend", [e]);
     });
 
-    this.canvas.addEventListener("keydown", (e) => {
+    window.addEventListener("keydown", (e) => {
       this.trigger("keydown", [e]);
     });
 

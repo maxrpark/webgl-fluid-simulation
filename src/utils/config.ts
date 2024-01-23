@@ -13,7 +13,7 @@ const config = {
   colorful: true,
   colorUpdateSpeed: 10,
   paused: false,
-  blackColor: { r: 0, g: 0, b: 0 },
+  backGroundColor: { r: 0, g: 0, b: 0 },
   transparent: false,
   bloom: true,
   bloomIterations: 8,
