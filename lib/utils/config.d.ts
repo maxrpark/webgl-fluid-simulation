@@ -1,0 +1,33 @@
+declare const config: {
+    simResolution: number;
+    dyeResolution: number;
+    CAPTURE_RESOLUTION: number;
+    densityDissipation: number;
+    velocityDissipation: number;
+    pressure: number;
+    pressureIterations: number;
+    curl: number;
+    splatRadius: number;
+    splatForce: number;
+    shading: boolean;
+    colorful: boolean;
+    colorUpdateSpeed: number;
+    paused: boolean;
+    backGroundColor: {
+        r: number;
+        g: number;
+        b: number;
+    };
+    transparent: boolean;
+    bloom: boolean;
+    bloomIterations: number;
+    bloomResolution: number;
+    bloomIntensity: number;
+    bloomThreshold: number;
+    bloomSoftKnee: number;
+    sunrays: boolean;
+    sunraysResolution: number;
+    sunraysWeigth: number;
+    onlyHover: boolean;
+};
+export default config;
