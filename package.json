@@ -1,9 +1,9 @@
 {
   "name": "fluid-webgl",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "",
-  "main": "index.js",
-  "type": "module",
+  "main": "lib/FluidSimulation.js",
+  "module": "src/FluidSimulation.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
