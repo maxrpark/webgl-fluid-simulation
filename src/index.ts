@@ -5,16 +5,21 @@ const canvas = document.createElement("canvas");
 canvas.setAttribute("id", "webgl-canvas");
 document.body.appendChild(canvas);
 
-new FluidSimulation({
+const fluid = new FluidSimulation({
   config: {
-    fluidColor: "#ff0000",
+    isTexture: true,
+    fluidColor: "#0000",
     transparent: true,
     curl: 0,
     pressure: 0.1,
   },
 });
 
-// texture.needsUpdate = true;
+const texture = new THREE.CanvasTexture(fluid.texture);
+
+console.log(texture);
+
+texture.needsUpdate = true;
 const sizes = {
   width: window.innerWidth,
   height: window.innerHeight,
@@ -39,7 +44,7 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 0, 4);
 scene.add(camera);
 const material = new THREE.MeshBasicMaterial({
-  // map: texture,
+  map: texture,
   transparent: true,
 });
 
@@ -81,7 +86,6 @@ const tick = () => {
   renderer.render(scene, camera);
 
   window.requestAnimationFrame(tick);
-
   meshes.forEach((el) => {
     el.rotation.x += 0.01;
     el.rotation.y -= 0.01;

@@ -365,7 +365,6 @@ export default class FluidSimulation {
     let dy = pointer.deltaY * this.config.splatForce;
     this.splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
   }
-
   splat(
     x: number,
     y: number,
