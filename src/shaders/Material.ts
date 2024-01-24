@@ -3,6 +3,7 @@ import ShaderCompiler from "./ShaderCompiler.js";
 import CreateProgram from "./CreateProgram.js";
 import { shaderType } from "../ts/global.js";
 import WebGLContext from "../WebGLContext.js";
+
 const fragmentShader = `
     precision highp float;
     precision highp sampler2D;
@@ -107,7 +108,7 @@ export default class Material {
     Object.assign(this, props);
     this.gl = this.webGLContext.gl;
     this.ditheringTexture = this.createTextureAsync(
-      "package/assets/LDR_LLL1_0.png"
+      "node_modules/fluid-webgl/assets/LDR_LLL1_0.png"
     );
 
     this.fragmentShaderSource = fragmentShader;
