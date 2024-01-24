@@ -107,9 +107,10 @@ export default class Material {
   constructor(props: Props) {
     Object.assign(this, props);
     this.gl = this.webGLContext.gl;
-    this.ditheringTexture = this.createTextureAsync(
-      "node_modules/fluid-webgl/assets/LDR_LLL1_0.png"
-    );
+    this.ditheringTexture = this.createTextureAsync("");
+    // this.ditheringTexture = this.createTextureAsync(
+    //   "node_modules/fluid-webgl/assets/LDR_LLL1_0.png"
+    // );
 
     this.fragmentShaderSource = fragmentShader;
     this.programs = [];

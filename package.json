@@ -1,6 +1,6 @@
 {
   "name": "fluid-webgl",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "",
   "main": "lib/FluidSimulation.js",
   "module": "src/FluidSimulation.d.ts",
